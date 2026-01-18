@@ -18,48 +18,59 @@ export default function HomeScreen() {
       <ThemedView style={styles.titleContainer}>
         <ThemedText type="title">Expo Vector Search</ThemedText>
       </ThemedView>
+
       <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">What is it?</ThemedText>
+        <ThemedText type="subtitle">What is Vector Search?</ThemedText>
         <ThemedText>
-          It's an ultra-fast vector search engine for React Native (C++ JSI). It allows you to store and search data based on <ThemedText type="defaultSemiBold">meaning</ThemedText>, not just keywords.
+          Traditional databases search for <ThemedText type="defaultSemiBold">exact matches</ThemedText>. Vector search engines search for <ThemedText type="defaultSemiBold">semantic meaning</ThemedText>.
+          By converting data (images, text, audio) into mathematical coordinates (vectors), we can find items that are "close" to each other in concept, not just in spelling.
         </ThemedText>
       </ThemedView>
 
       <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">🔎 Simple Analogy</ThemedText>
-        <ThemedText>
-          Imagine a library.
-        </ThemedText>
-        <ThemedText>
-          <ThemedText type="defaultSemiBold">Standard Search (SQL):</ThemedText> You ask for a book with "Cat" in the title. The librarian only gives you books that have the exact word "Cat" on the cover.
-        </ThemedText>
-        <ThemedText>
-          <ThemedText type="defaultSemiBold">Vector Search (This Demo):</ThemedText> You ask for "something about fluffy animals". The librarian understands the concept and brings you books about Cats, Dogs, and Rabbits, even if the word "fluffy" isn't in the title.
-        </ThemedText>
+        <ThemedText type="subtitle">🔎 Intuitive Analogies</ThemedText>
+
+        <ThemedView style={styles.analogyBox}>
+          <ThemedText type="defaultSemiBold">📚 The Librarian</ThemedText>
+          <ThemedText style={styles.analogyText}>
+            Instead of searching for a book with "Sun" in the title, you ask for "something about hot celestial bodies." The librarian understands the <ThemedText type="defaultSemiBold">concept</ThemedText> and finds books about Stars, Galaxies, and Solar Energy.
+          </ThemedText>
+        </ThemedView>
+
+        <ThemedView style={styles.analogyBox}>
+          <ThemedText type="defaultSemiBold">🎵 The Music Curator (Spotify)</ThemedText>
+          <ThemedText style={styles.analogyText}>
+            You like a song with a "heavy bass and melancholy vocals." Vector search finds other songs with a similar "vibe" even if they are from different genres or have different instruments.
+          </ThemedText>
+        </ThemedView>
+
+        <ThemedView style={styles.analogyBox}>
+          <ThemedText type="defaultSemiBold">🛍️ The Personal Shopper</ThemedText>
+          <ThemedText style={styles.analogyText}>
+            You take a photo of a red dress with a specific floral pattern. The system finds "mathematically similar" clothes in the inventory instantly, without needing a human to tag them.
+          </ThemedText>
+        </ThemedView>
       </ThemedView>
 
       <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">🏠 Discover the Power</ThemedText>
+        <ThemedText type="subtitle">🚀 Real-World Examples</ThemedText>
 
         <ThemedText>
-          <ThemedText type="defaultSemiBold">✨ Visual Search Tab:</ThemedText>
-          {'\n'}Experience the "magic" of finding products by visual similarity. No keywords, just proximity in the vector space.
+          <ThemedText type="defaultSemiBold">📸 Intelligent Gallery:</ThemedText> Find all your "sunset at the beach" photos without any manual tagging.
         </ThemedText>
 
         <ThemedText>
-          <ThemedText type="defaultSemiBold">⚡ Performance Lab Tab:</ThemedText>
-          {'\n'}See the benchmarks. Witness the raw speed of C++ JSI vs. traditional JavaScript loops.
+          <ThemedText type="defaultSemiBold">🛡️ Content Moderation:</ThemedText> Detect toxic messages or harmful images by their intent, even if they use clever misspellings.
         </ThemedText>
 
         <ThemedText>
-          <ThemedText type="defaultSemiBold">🏷️ Classify Tab:</ThemedText>
-          {'\n'}See how vector search can categorize text by intent and meaning instantly.
+          <ThemedText type="defaultSemiBold">🤖 Local RAG:</ThemedText> Provide private, offline AI knowledge bases for your users by searching through your own documentation locally.
         </ThemedText>
       </ThemedView>
 
       <ThemedView style={styles.stepContainer}>
         <ThemedText style={{ fontSize: 12, opacity: 0.6, marginTop: 10 }}>
-          Technology: USearch (C++) & JSI. Runs 100% on your device, offline, processing 10k items in less than 1 millisecond.
+          Powered by USearch (C++ JSI). 100% On-Device. Processing 10k items in &lt;1ms.
         </ThemedText>
       </ThemedView>
     </ParallaxScrollView>
@@ -75,6 +86,19 @@ const styles = StyleSheet.create({
   stepContainer: {
     gap: 8,
     marginBottom: 8,
+  },
+  analogyBox: {
+    backgroundColor: 'rgba(0,0,0,0.03)',
+    padding: 12,
+    borderRadius: 12,
+    borderLeftWidth: 4,
+    borderLeftColor: '#A1CEDC',
+    marginBottom: 4,
+  },
+  analogyText: {
+    fontSize: 14,
+    marginTop: 4,
+    opacity: 0.8,
   },
   reactLogo: {
     height: 178,

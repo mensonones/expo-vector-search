@@ -29,6 +29,9 @@ export default function PerformanceLabScreen() {
     const DIMENSIONS = 128;
     const COUNT = 1000; // Smaller count for responsive demo but enough to show difference
 
+    const MEM_COUNT = 10000;
+    const MEM_DIMS = 384; // Higher dims = more vector dominance in memory report
+
     const runPerformanceRace = async () => {
         setStatus('running');
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
@@ -89,8 +92,6 @@ export default function PerformanceLabScreen() {
         batchIndex.delete();
 
         // 3. Memory Optimization
-        const MEM_COUNT = 10000;
-        const MEM_DIMS = 384; // Higher dims = more vector dominance in memory report
         const f32Idx = new VectorIndex(MEM_DIMS, { quantization: 'f32' });
         const memVectors = new Float32Array(MEM_DIMS);
         for (let i = 0; i < MEM_COUNT; i++) f32Idx.add(i, memVectors);
@@ -167,12 +168,27 @@ export default function PerformanceLabScreen() {
 
                 {/* Section 3: Memory Mastery */}
                 <View style={styles.section}>
-                    <ThemedText type="subtitle" style={styles.sectionTitle}>MEMORY OPTIMIZATION</ThemedText>
+                    <View style={styles.sectionHeaderRow}>
+                        <ThemedText type="subtitle" style={styles.sectionTitle}>MEMORY OPTIMIZATION</ThemedText>
+                        {f32Memory && i8Memory && (
+                            <View style={styles.savingsBadge}>
+                                <ThemedText style={styles.savingsText}>
+                                    -{(((f32Memory - i8Memory) / f32Memory) * 100).toFixed(0)}% SPACE
+                                </ThemedText>
+                            </View>
+                        )}
+                    </View>
                     <ThemedText style={styles.description}>
-                        Impact of Int8 Quantization on footprint.
+                        Comparing {MEM_COUNT.toLocaleString()} vectors ({MEM_DIMS} dims) footprint: F32 (4 bytes/dim) vs. Int8 (1 byte/dim + overhead).
                     </ThemedText>
                     {renderMetric("Full Precision (F32)", f32Memory ? f32Memory / 1024 : null, "KB", "#64D2FF", i8Memory ? i8Memory / 1024 : null)}
                     {renderMetric("Quantized (Int8)", i8Memory ? i8Memory / 1024 : null, "KB", "#34C759")}
+
+                    {i8Memory && (
+                        <ThemedText style={styles.hintText}>
+                            💡 Int8 quantization reduces memory usage by ~75% for pure vector data, allowing you to store 4x more data in the same RAM.
+                        </ThemedText>
+                    )}
                 </View>
 
                 <TouchableOpacity
@@ -208,8 +224,33 @@ const styles = StyleSheet.create({
     subtitle: { fontSize: 14, opacity: 0.6, marginTop: 4 },
 
     section: { gap: 12 },
+    sectionHeaderRow: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+    },
     sectionTitle: { fontSize: 14, fontWeight: 'bold', color: '#8E8E93', letterSpacing: 1 },
     description: { fontSize: 13, opacity: 0.7, marginBottom: 4 },
+
+    savingsBadge: {
+        backgroundColor: '#34C75922',
+        paddingHorizontal: 8,
+        paddingVertical: 4,
+        borderRadius: 6,
+        borderWidth: 1,
+        borderColor: '#34C75944',
+    },
+    savingsText: {
+        color: '#34C759',
+        fontSize: 10,
+        fontWeight: '900',
+    },
+    hintText: {
+        fontSize: 11,
+        opacity: 0.5,
+        fontStyle: 'italic',
+        marginTop: 4,
+    },
 
     metricCard: {
         backgroundColor: '#1C1C1E',
