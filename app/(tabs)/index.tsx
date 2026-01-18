@@ -21,7 +21,7 @@ export default function HomeScreen() {
       <ThemedView style={styles.stepContainer}>
         <ThemedText type="subtitle">What is it?</ThemedText>
         <ThemedText>
-          It's an ultra-fast vector database for React Native (C++ JSI). It allows you to store and search data based on <ThemedText type="defaultSemiBold">meaning</ThemedText>, not just keywords.
+          It's an ultra-fast vector search engine for React Native (C++ JSI). It allows you to store and search data based on <ThemedText type="defaultSemiBold">meaning</ThemedText>, not just keywords.
         </ThemedText>
       </ThemedView>
 
