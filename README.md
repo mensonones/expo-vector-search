@@ -116,7 +116,7 @@ The application includes a built-in benchmark tool that compares the native C++ 
 
 - **[USearch](https://github.com/unum-cloud/usearch)**: The high-performance C++ engine powering the similarity search.
 - **[Expo Modules SDK](https://docs.expo.dev/modules/overview/)**: For the robust infrastructure that makes JSI modules accessible in the Expo ecosystem.
-- **[Crossing Minds](https://huggingface.co/datasets/crossingminds/shopping_queries_image_dataset)**: For the sample product dataset.
+- **[Crossing Minds](https://huggingface.co/datasets/crossingminds/shopping-queries-image-dataset)**: For the sample product dataset.
 
 ## License
 
