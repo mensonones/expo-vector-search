@@ -1,50 +1,126 @@
-# Welcome to your Expo app 👋
+# Expo Vector Search
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+A high-performance, on-device **vector search engine** demonstration for Expo and React Native. This project showcases the capabilities of the `expo-vector-search` module, providing a real-world implementation of semantic similarity search and machine learning features without server-side dependencies.
 
-## Get started
+## Key Features
 
-1. Install dependencies
+- **Blazing Fast On-Device Search**: Sub-millisecond similarity search over 10,000+ vectors using the HNSW algorithm.
+- **Privacy-First Architecture**: All vector indexing and similarity matching occurs locally on the device.
+- **Production-Grade Features**: Support for Int8 quantization, native persistence, and high-fidelity JSI communication.
+- **Cross-Industry Use Cases**:
+  - **E-commerce**: Visual product similarity matching.
+  - **Support**: Automated message classification and routing.
+  - **Safety**: On-device moderation and anomaly detection.
 
+3. **Application Layer**: A modern Expo app demonstrating real-world use cases, benchmarks, and diagnostic tools.
+
+## How it Works
+
+Unlike traditional databases that search for exact matches (e.g., "Product ID = 123"), this engine uses **Vector Embeddings**. 
+- **Embeddings**: Data (images, text) is converted into an array of numbers (vectors) that represent its meaning.
+- **Distance**: The "similarity" between two items is calculated using the **Cosine Distance** between their vectors.
+- **HNSW Algorithm**: Instead of checking every single item (slow), we use a mathematical graph that lets us jump through the data to find the nearest neighbors in sub-millisecond time.
+
+## Project Structure
+
+This repository is organized as a monorepo-style Expo project:
+
+```text
+├── app/                    # Demo Application (Expo Router)
+│   ├── (tabs)/             # Main search and performance lab screens
+│   └── ...
+├── modules/
+│   └── expo-vector-search/ # Core Engine (Native Module)
+│       ├── ios/            # Swift & C++ bindings for iOS
+│       ├── android/        # Kotlin & C++ (JNI) for Android
+│       ├── src/            # TypeScript API & types
+│       └── README.md       # Technical module documentation
+├── assets/                 # Demo assets (product data & images)
+├── scripts/                # Python scripts for data generation
+└── README.md               # You are here
+```
+
+## Getting Started
+
+### Prerequisites
+
+- Node.js and npm/yarn.
+- Expo Go or Development Build environment.
+
+### Installation
+
+1. Clone the repository and install dependencies:
    ```bash
    npm install
    ```
 
-2. Start the app
-
+2. Start the development server:
    ```bash
    npx expo start
    ```
 
-In the output, you'll find options to open the app in a
+3. Run the application:
+   - For Android: Press `a`.
+   - For iOS: Press `i`.
+   - *Note: This project requires a development build to run the custom native module.*
 
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
+## Demo Data Setup
 
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
+To test the **Visual Search** demo, you need to download and process the sample product dataset. Follow these steps:
 
-## Get a fresh project
-
-When you're ready, run:
-
+### 1. Prerequisites (Python)
+Ensure you have Python 3.8+ installed. Install the processing dependencies:
 ```bash
-npm run reset-project
+pip install -r scripts/requirements.txt
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+### 2. Download & Process Data
+Run the following commands from the **project root**:
 
-## Learn more
+```bash
+# Step A: Download the dataset and convert to JSON (~150MB)
+python scripts/download_and_convert_products.py
 
-To learn more about developing your project with Expo, look at the following resources:
+# Step B: Split the dataset into optimized chunks for the mobile app
+python scripts/split_dataset.py
+```
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+### 3. Verify
+After running the scripts, your `assets/chunks/` directory should contain multiple `.json` files and an `index.ts`. The app will automatically load these files on the next launch.
 
-## Join the community
+## Platform Support
 
-Join our community of developers creating universal apps.
+> [!IMPORTANT]
+> The current version of this module has been primary developed and **thoroughly tested on Android**. 
+> - **Android**: Fully supported (tested on Galaxy S23 FE).
+> - **iOS**: Architecture is ready, but full native implementation and verification are planned for a future release.
 
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+## Module Documentation
+
+The core logic resides in the `modules/expo-vector-search` directory. For detailed API documentation, performance specifications, and implementation details, please refer to the [Module README](./modules/expo-vector-search/README.md).
+
+## Performance and Benchmarks
+
+The application includes a built-in benchmark tool that compares the native C++ implementation against a naive JavaScript baseline. 
+
+**Real-world benchmarks (Galaxy S23 FE):**
+- **Search Latency**: **0.08ms** (vs 10.51ms in JS loop) -> **130x speedup**.
+- **Memory Footprint (10k vectors, 384 dims)**:
+  - **Full Precision (F32)**: 36,964.94 KB (~37 MB)
+  - **Quantized (Int8)**: 20,580.94 KB (~21 MB) -> **45% savings**.
+- **Bulk Insert**: **74.44ms** for 1,000 vectors using `addBatch`.
+
+![Performance Lab Benchmarks](./assets/images/perf_lab.jpg)
+
+## Acknowledgements
+
+- **[USearch](https://github.com/unum-cloud/usearch)**: The high-performance C++ engine powering the similarity search.
+- **[Expo Modules SDK](https://docs.expo.dev/modules/overview/)**: For the robust infrastructure that makes JSI modules accessible in the Expo ecosystem.
+- **[Crossing Minds](https://huggingface.co/datasets/crossingminds/shopping_queries_image_features)**: For the sample product dataset.
+
+## License
+
+This project is licensed under the [MIT License](./LICENSE).
+
+---
+*Maintained with a focus on high-performance mobile engineering.*

@@ -1,0 +1,19 @@
+{
+    "name": "expo-vector-search",
+    "version": "0.1.0",
+    "description": "A high-performance vector search module for Expo",
+    "main": "index.ts",
+    "types": "index.ts",
+    "scripts": {
+        "build": "expo-module build",
+        "clean": "expo-module clean"
+    },
+    "keywords": [
+        "react-native",
+        "expo",
+        "vector-search",
+        "usearch"
+    ],
+    "author": "Emerson Vieira",
+    "license": "MIT"
+}

@@ -41,3 +41,18 @@ app-example
 # generated native folders
 /ios
 /android
+
+# Modules build artifacts
+modules/**/android/build/
+modules/**/android/.cxx/
+modules/**/android/.gradle/
+modules/**/ios/Pods/
+modules/**/ios/build/
+modules/**/node_modules/
+modules/**/dist/
+
+
+# Data Generation Artifacts
+assets/products_vectors.json
+assets/chunks/
+data/

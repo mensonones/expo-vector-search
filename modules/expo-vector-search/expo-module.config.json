@@ -1,0 +1,9 @@
+{
+  "platforms": ["apple", "android", "web"],
+  "apple": {
+    "modules": ["ExpoVectorSearchModule"]
+  },
+  "android": {
+    "modules": ["expo.modules.vectorsearch.ExpoVectorSearchModule"]
+  }
+}

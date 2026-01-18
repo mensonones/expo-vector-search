@@ -1,11 +1,9 @@
 import { Image } from 'expo-image';
-import { Platform, StyleSheet } from 'react-native';
+import { StyleSheet } from 'react-native';
 
-import { HelloWave } from '@/components/hello-wave';
 import ParallaxScrollView from '@/components/parallax-scroll-view';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
-import { Link } from 'expo-router';
 
 export default function HomeScreen() {
   return (
@@ -18,60 +16,50 @@ export default function HomeScreen() {
         />
       }>
       <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title">Welcome!</ThemedText>
-        <HelloWave />
+        <ThemedText type="title">Expo Vector Search</ThemedText>
       </ThemedView>
       <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 1: Try it</ThemedText>
+        <ThemedText type="subtitle">What is it?</ThemedText>
         <ThemedText>
-          Edit <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText> to see changes.
-          Press{' '}
-          <ThemedText type="defaultSemiBold">
-            {Platform.select({
-              ios: 'cmd + d',
-              android: 'cmd + m',
-              web: 'F12',
-            })}
-          </ThemedText>{' '}
-          to open developer tools.
+          It's an ultra-fast vector database for React Native (C++ JSI). It allows you to store and search data based on <ThemedText type="defaultSemiBold">meaning</ThemedText>, not just keywords.
         </ThemedText>
       </ThemedView>
+
       <ThemedView style={styles.stepContainer}>
-        <Link href="/modal">
-          <Link.Trigger>
-            <ThemedText type="subtitle">Step 2: Explore</ThemedText>
-          </Link.Trigger>
-          <Link.Preview />
-          <Link.Menu>
-            <Link.MenuAction title="Action" icon="cube" onPress={() => alert('Action pressed')} />
-            <Link.MenuAction
-              title="Share"
-              icon="square.and.arrow.up"
-              onPress={() => alert('Share pressed')}
-            />
-            <Link.Menu title="More" icon="ellipsis">
-              <Link.MenuAction
-                title="Delete"
-                icon="trash"
-                destructive
-                onPress={() => alert('Delete pressed')}
-              />
-            </Link.Menu>
-          </Link.Menu>
-        </Link>
+        <ThemedText type="subtitle">🔎 Simple Analogy</ThemedText>
+        <ThemedText>
+          Imagine a library.
+        </ThemedText>
+        <ThemedText>
+          <ThemedText type="defaultSemiBold">Standard Search (SQL):</ThemedText> You ask for a book with "Cat" in the title. The librarian only gives you books that have the exact word "Cat" on the cover.
+        </ThemedText>
+        <ThemedText>
+          <ThemedText type="defaultSemiBold">Vector Search (This Demo):</ThemedText> You ask for "something about fluffy animals". The librarian understands the concept and brings you books about Cats, Dogs, and Rabbits, even if the word "fluffy" isn't in the title.
+        </ThemedText>
+      </ThemedView>
+
+      <ThemedView style={styles.stepContainer}>
+        <ThemedText type="subtitle">🏠 Discover the Power</ThemedText>
 
         <ThemedText>
-          {`Tap the Explore tab to learn more about what's included in this starter app.`}
+          <ThemedText type="defaultSemiBold">✨ Visual Search Tab:</ThemedText>
+          {'\n'}Experience the "magic" of finding products by visual similarity. No keywords, just proximity in the vector space.
+        </ThemedText>
+
+        <ThemedText>
+          <ThemedText type="defaultSemiBold">⚡ Performance Lab Tab:</ThemedText>
+          {'\n'}See the benchmarks. Witness the raw speed of C++ JSI vs. traditional JavaScript loops.
+        </ThemedText>
+
+        <ThemedText>
+          <ThemedText type="defaultSemiBold">🏷️ Classify Tab:</ThemedText>
+          {'\n'}See how vector search can categorize text by intent and meaning instantly.
         </ThemedText>
       </ThemedView>
+
       <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 3: Get a fresh start</ThemedText>
-        <ThemedText>
-          {`When you're ready, run `}
-          <ThemedText type="defaultSemiBold">npm run reset-project</ThemedText> to get a fresh{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> directory. This will move the current{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> to{' '}
-          <ThemedText type="defaultSemiBold">app-example</ThemedText>.
+        <ThemedText style={{ fontSize: 12, opacity: 0.6, marginTop: 10 }}>
+          Technology: USearch (C++) & JSI. Runs 100% on your device, offline, processing 10k items in less than 1 millisecond.
         </ThemedText>
       </ThemedView>
     </ParallaxScrollView>

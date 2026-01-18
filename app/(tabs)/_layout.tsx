@@ -24,10 +24,24 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="explore"
+        name="demo-vector-search"
         options={{
-          title: 'Explore',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="paperplane.fill" color={color} />,
+          title: 'Visual Search',
+          tabBarIcon: ({ color }) => <IconSymbol size={28} name="sparkles" color={color} />,
+        }}
+      />
+      <Tabs.Screen
+        name="demo-classifier"
+        options={{
+          title: 'Classify',
+          tabBarIcon: ({ color }) => <IconSymbol size={28} name="tag.fill" color={color} />,
+        }}
+      />
+      <Tabs.Screen
+        name="test-diagnostics"
+        options={{
+          title: 'Perf Lab',
+          tabBarIcon: ({ color }) => <IconSymbol size={28} name="bolt.shield.fill" color={color} />,
         }}
       />
     </Tabs>
