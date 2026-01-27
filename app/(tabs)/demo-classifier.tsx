@@ -6,7 +6,7 @@ import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import * as Haptics from 'expo-haptics';
 import { VectorIndex } from 'expo-vector-search';
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, Platform, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
 
 const VEC_DIM = 64;
@@ -61,11 +61,7 @@ export default function DemoClassifierScreen() {
     const [currentTicket, setCurrentTicket] = useState<Ticket | null>(null);
     const [history, setHistory] = useState<Ticket[]>([]);
 
-    useEffect(() => {
-        setTimeout(initClassifier, 500);
-    }, []);
-
-    const initClassifier = () => {
+    const initClassifier = useCallback(() => {
         const idx = new VectorIndex(VEC_DIM);
         const chunk = Math.floor(VEC_DIM / 3);
 
@@ -79,7 +75,11 @@ export default function DemoClassifierScreen() {
 
         setIndex(idx);
         setIsReady(true);
-    };
+    }, []);
+
+    useEffect(() => {
+        setTimeout(initClassifier, 500);
+    }, [initClassifier]);
 
     const fillVector = (vec: Float32Array, start: number, end: number) => {
         for (let i = 0; i < VEC_DIM; i++) {
@@ -178,7 +178,7 @@ export default function DemoClassifierScreen() {
                         <ThemedText style={styles.sectionLabel}>ANALYSIS RESULT</ThemedText>
                         <GlassCard style={[styles.resultCard, { borderColor: getCategoryColor(currentTicket.predictedCategory) + '40' }]}>
                             <ThemedText style={styles.label}>Signal Detected:</ThemedText>
-                            <ThemedText style={styles.ticketText}>"{currentTicket.text}"</ThemedText>
+                            <ThemedText style={styles.ticketText}>&quot;{currentTicket.text}&quot;</ThemedText>
 
                             <View style={styles.divider} />
 

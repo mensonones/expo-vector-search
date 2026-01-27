@@ -44,6 +44,7 @@ const ProductCard = React.memo(({ item, onPress, themeColors }: { item: Product;
         </View>
     </TouchableOpacity>
 ));
+ProductCard.displayName = 'ProductCard';
 
 export default function VectorSearchScreen() {
     const colorScheme = useColorScheme() ?? 'light';
@@ -61,7 +62,7 @@ export default function VectorSearchScreen() {
         if (!isInitializing && allProductsRef.current.length > 0 && searchTerm === '') {
             setResults(allProductsRef.current.slice(0, 20));
         }
-    }, [isInitializing, searchTerm]);
+    }, [isInitializing, searchTerm, allProductsRef]);
 
     const handleSearch = (text: string) => {
         setSearchTerm(text);

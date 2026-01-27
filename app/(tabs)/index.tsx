@@ -57,7 +57,7 @@ export default function HomeScreen() {
               <IconSymbol name="book.fill" size={24} color="#FF9F0A" />
               <ThemedText type="defaultSemiBold" style={styles.analogyTitle}>The Librarian</ThemedText>
               <ThemedText style={styles.analogyText}>
-                Finds "books about hot celestial bodies" even if the title doesn't say "Sun".
+                Finds &quot;books about hot celestial bodies&quot; even if the title doesn&apos;t say &quot;Sun&quot;.
               </ThemedText>
             </GlassCard>
 
@@ -65,7 +65,7 @@ export default function HomeScreen() {
               <IconSymbol name="music.note" size={24} color="#AF52DE" />
               <ThemedText type="defaultSemiBold" style={styles.analogyTitle}>Music Curator</ThemedText>
               <ThemedText style={styles.analogyText}>
-                Matches the "melancholy vibe" of a song across different genres.
+                Matches the &quot;melancholy vibe&quot; of a song across different genres.
               </ThemedText>
             </GlassCard>
 

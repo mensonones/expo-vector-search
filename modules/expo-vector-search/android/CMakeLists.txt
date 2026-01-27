@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.10.2)
 project(ExpoVectorSearch)
 
 # 1. React Native / Expo Configuration (Default)
-set(CMAKE_VERBOSE_MAKEFILE ON)
+set(CMAKE_VERBOSE_MAKEFILE OFF)
 set(CMAKE_CXX_STANDARD 17)
 # Disable external FP16 library requirement (use native or fallback)
 add_compile_definitions(USEARCH_USE_FP16LIB=0)

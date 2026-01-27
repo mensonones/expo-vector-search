@@ -101,7 +101,7 @@ export default function PerformanceLabScreen() {
             const endBatch = performance.now();
             setBatchInsertTime(endBatch - startBatch);
             batchIndex.delete();
-        } catch (e: any) { }
+        } catch { }
 
         await new Promise(r => setTimeout(r, 50));
 
@@ -128,7 +128,7 @@ export default function PerformanceLabScreen() {
             setI8Memory(i8Idx.memoryUsage);
             setI8Time(endI8 - startI8);
             i8Idx.delete();
-        } catch (e: any) { }
+        } catch { }
 
         setStatus('completed');
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
