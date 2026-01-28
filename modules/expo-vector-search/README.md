@@ -38,11 +38,37 @@ Benchmark results obtained using **Release builds** on physical devices (1,000 v
 
 ## Installation
 
-This module contains custom native code. You must use development builds to use this module.
+This module contains custom native code (C++/JSI). **It does not work in [Expo Go](https://expo.dev/go).** You must generate and build the native project.
 
+### 1. Install the package
 ```bash
 npx expo install expo-vector-search
 ```
+
+### 2. Generate Native Folders
+To access the `ios` and `android` directories and include the C++ engine, run:
+```bash
+npx expo prebuild
+```
+> [!NOTE]
+> This command generates the native projects based on your `app.json`. If you already have `ios` and `android` folders (Bare Workflow), you can skip this step.
+
+### 3. Build and Run
+You must compile the native code to use the module. Use the following commands to build and launch the app:
+```bash
+npx expo run:android
+# or
+npx expo run:ios
+```
+
+---
+
+### Compatibility
+
+| Environment | Supported | Requirement |
+| :--- | :--- | :--- |
+| **Expo Go** | ❌ No | Requires custom native engine |
+| **Bare Workflow** | ✅ Yes | Standard `ios`/`android` folders |
 
 ## Architecture
 
