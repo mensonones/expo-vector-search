@@ -31,10 +31,10 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="demo-classifier"
+        name="demo-jaccard"
         options={{
-          title: 'Classify',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="tag.fill" color={color} />,
+          title: 'Skills',
+          tabBarIcon: ({ color }) => <IconSymbol size={28} name="person.2.crop.square.stack.fill" color={color} />,
         }}
       />
       <Tabs.Screen
@@ -42,6 +42,34 @@ export default function TabLayout() {
         options={{
           title: 'Perf Lab',
           tabBarIcon: ({ color }) => <IconSymbol size={28} name="bolt.shield.fill" color={color} />,
+        }}
+      />
+      <Tabs.Screen
+        name="debug"
+        options={{
+          title: 'Debug',
+          tabBarIcon: ({ color }) => <IconSymbol size={28} name="hammer.fill" color={color} />,
+        }}
+      />
+      <Tabs.Screen
+        name="test-metrics"
+        options={{
+          title: 'Metrics',
+          tabBarIcon: ({ color }) => <IconSymbol size={28} name="ruler.fill" color={color} />,
+        }}
+      />
+      <Tabs.Screen
+        name="demo-colors"
+        options={{
+          title: 'Colors',
+          tabBarIcon: ({ color }) => <IconSymbol size={28} name="paintpalette.fill" color={color} />,
+        }}
+      />
+      <Tabs.Screen
+        name="demo-hamming"
+        options={{
+          title: 'Hamming',
+          tabBarIcon: ({ color }) => <IconSymbol size={28} name="doc.on.doc.fill" color={color} />,
         }}
       />
     </Tabs>
