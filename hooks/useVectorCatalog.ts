@@ -25,23 +25,34 @@ export function useVectorCatalog() {
     const [loadedCount, setLoadedCount] = useState(0);
     const allProductsRef = useRef<Product[]>([]);
 
-    // Memoize the vector index instance. We use f32 for maximum precision.
-    const vectorIndex = useMemo(() => new VectorIndex(VECTOR_DIMENSION, {
-        quantization: 'f32'
-    }), []);
+    // We use a ref to hold the index so we can destroy/recreate it without full unmounts if needed,
+    // but specific to this demo, let's use a state to force re-creation if options change.
+    const [indexOptions, setIndexOptions] = useState<any>({ quantization: 'f32', metric: 'cos' });
+
+    // We retain the index instance in a ref to manage lifecycle manually if needed, 
+    // or just let usage of `useMemo` handle it dependent on `indexOptions`.
+    const vectorIndex = useMemo(() => new VectorIndex(VECTOR_DIMENSION, indexOptions), [indexOptions]);
+
+    const resetIndex = (newOptions: any) => {
+        setLoadedCount(0);
+        setIsInitializing(true);
+        allProductsRef.current = [];
+        setIndexOptions(newOptions);
+        // The effect below will trigger re-loading data because `vectorIndex` changes.
+    };
 
     useEffect(() => {
         let isActive = true;
 
         async function init() {
-            // Check in-memory first
+            // 1. If we already have data in JS ref and Index is populated, skip.
+            // When resetting, we clear allProductsRef, so this will be false.
             if (allProductsRef.current.length > 0 && vectorIndex.count > 0) {
                 setLoadedCount(allProductsRef.current.length);
                 setIsInitializing(false);
                 return;
             }
 
-            // Check MMKV for hypothetical persistence state
             const { count: savedCount } = loadState();
             // In this demo, we can't easily skip loading because we need to populate the C++ index index from scratch
             // (unless we implemented vectorIndex.save/load to disk, which we technically have in the interface!)
@@ -120,6 +131,8 @@ export function useVectorCatalog() {
         isInitializing,
         loadedCount,
         allProductsRef,
-        vectorIndex
+        vectorIndex,
+        resetIndex,
+        indexOptions
     };
 }

@@ -3575,7 +3575,7 @@ expo-system-ui@~6.0.9:
     "@react-native/normalize-colors" "0.81.5"
     debug "^4.3.2"
 
-"expo-vector-search@file:./modules/expo-vector-search":
+"expo-vector-search@file:modules/expo-vector-search":
   version "0.2.0"
 
 expo-web-browser@~15.0.10:
