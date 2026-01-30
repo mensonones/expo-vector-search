@@ -7,6 +7,7 @@ A high-performance, on-device **vector search engine** demonstration for Expo an
 - **Blazing Fast On-Device Search**: Sub-millisecond similarity search over 10,000+ vectors using the HNSW algorithm.
 - **Privacy-First Architecture**: All vector indexing and similarity matching occurs locally on the device.
 - **Production-Grade Features**: Support for Int8 quantization, native persistence, and high-fidelity JSI communication.
+- **Extended Metrics**: Support for Cosine, Euclidean (L2), Hamming (Binary), and Jaccard (Set) distances.
 - **Cross-Industry Use Cases**:
   - **E-commerce**: Visual product similarity matching.
   - **Support**: Automated message classification and routing.
@@ -133,13 +134,13 @@ The application includes a built-in benchmark tool that compares the native C++ 
 
 ## Future Roadmap
 
-- [ ] **Dynamic CRUD Support**: Implement `remove(key)` and `update(key, vector)` for live index management.
-- [ ] **Metadata Filtering**: Enable search with predicates (e.g., filtering by category or availability).
+- [x] **Dynamic CRUD Support**: Implement `remove(key)` and `update(key, vector)` for live index management.
+- [x] **Metadata Filtering**: Enable search with predicates (e.g., filtering by category or availability).
 - [ ] **Architecture-Specific SIMD**: Enable NEON/SVE/AVX optimizations for Android to narrow the F32/Int8 performance gap.
 - [ ] **On-Device Embeddings**: Local text/image to vector conversion (using MediaPipe or ONNX).
 - [ ] **Hybrid Search**: Combine vector similarity with traditional keyword-based search.
 - [ ] **USearch Engine Upgrade**: Migrate from `v2.9.0` to `v2.23.0+` for better precision.
-- [ ] **Simplified React Hooks**: Abstractions like `useVectorSearch` for automatic resource management.
+- [x] **Simplified React Hooks**: Abstractions like `useVectorSearch` for automatic resource management.
 - [ ] **Background Indexing**: Offload heavy ingestion to native threads to prevent UI stutters.
 - [ ] **SQLite Synchronization**: Built-in utilities to sync vector indices with `expo-sqlite`.
 
