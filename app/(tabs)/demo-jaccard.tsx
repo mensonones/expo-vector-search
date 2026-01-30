@@ -1,15 +1,16 @@
-import { GlassCard } from '@/components/glass-card';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import { BlurView } from 'expo-blur';
 import * as Haptics from 'expo-haptics';
 import { VectorIndex } from 'expo-vector-search';
 import React, { useEffect, useState } from 'react';
 import {
     ActivityIndicator,
-    FlatList,
+    Platform,
+    ScrollView,
     StyleSheet,
     TouchableOpacity,
     View
@@ -17,18 +18,9 @@ import {
 
 // List of available skills (tags)
 const SKILLS = [
-    'React',
-    'TypeScript',
-    'Node.js',
-    'Python',
-    'C++',
-    'Rust',
-    'Swift',
-    'Kotlin',
-    'SQL',
-    'GraphQL',
-    'Docker',
-    'AWS',
+    'React', 'TypeScript', 'Node.js', 'Python',
+    'C++', 'Rust', 'Swift', 'Kotlin',
+    'SQL', 'GraphQL', 'Docker', 'AWS',
 ];
 
 const SKILL_COUNT = SKILLS.length;
@@ -45,22 +37,13 @@ type Candidate = {
 
 // Mock Data Generation
 const NAMES = [
-    'Alice Engineer',
-    'Bob Builder',
-    'Charlie Coder',
-    'Diana Dev',
-    'Evan Expert',
-    'Fiona Fullstack',
-    'George Guru',
-    'Hannah Hacker',
+    'Alice Engineer', 'Bob Builder', 'Charlie Coder', 'Diana Dev',
+    'Evan Expert', 'Fiona Fullstack', 'George Guru', 'Hannah Hacker',
 ];
 
 const ROLES = [
-    'Senior Frontend',
-    'Backend Lead',
-    'Systems Architect',
-    'Mobile Dev',
-    'DevOps Engineer',
+    'Senior Frontend', 'Backend Lead', 'Systems Architect',
+    'Mobile Dev', 'DevOps Engineer',
 ];
 
 const generateCandidates = (count: number): Candidate[] => {
@@ -101,42 +84,31 @@ export default function DemoJaccardScreen() {
     // Initialize Jaccard Index
     useEffect(() => {
         setTimeout(() => {
-            // Jaccard Metric handles binary vectors (sets) natively
             const idx = new VectorIndex(SKILL_COUNT, { metric: 'jaccard' });
-
-            // Index all candidates
-            candidates.forEach((c) => {
-                idx.add(c.id, c.skills);
-            });
-
+            candidates.forEach((c) => idx.add(c.id, c.skills));
             setIndex(idx);
             setIsReady(true);
 
-            // Select some defaults to show initial state
-            toggleSkill(0); // React
-            toggleSkill(1); // TS
+            // Set defaults
+            const defaults = new Set<number>();
+            defaults.add(0); // React
+            defaults.add(1); // TS
+            setSelectedSkills(defaults);
         }, 500);
     }, []);
 
-    // Real-time Search when selection changes
+    // Real-time Search
     useEffect(() => {
         if (!index || selectedSkills.size === 0) {
             setSearchResults([]);
             return;
         }
 
-        // specific timeout to wait for React state/render cycle not needed, 
-        // but useful if we add debounce. For now, instant.
-
-        // Construct Query Vector
         const queryVec = new Float32Array(SKILL_COUNT).fill(0);
         selectedSkills.forEach((idx) => {
             queryVec[idx] = 1;
         });
 
-        // Search
-        // Jaccard Distance = 1 - (Intersection / Union)
-        // Lower distance = Higher Similarity
         const results = index.search(queryVec, 20);
 
         const mappedResults = results
@@ -146,7 +118,7 @@ export default function DemoJaccardScreen() {
                 return {
                     ...candidate,
                     distance: res.distance,
-                    matchScore: Math.max(0, 1 - res.distance), // Convert distance to similarity score
+                    matchScore: Math.max(0, 1 - res.distance),
                 };
             })
             .filter((c) => c !== null) as Candidate[];
@@ -158,21 +130,48 @@ export default function DemoJaccardScreen() {
         Haptics.selectionAsync();
         setSelectedSkills((prev) => {
             const next = new Set(prev);
-            if (next.has(idx)) {
-                next.delete(idx);
-            } else {
-                next.add(idx);
-            }
+            if (next.has(idx)) next.delete(idx);
+            else next.add(idx);
             return next;
         });
     };
 
-    const renderCandidate = ({ item }: { item: Candidate }) => {
+    // --- UI Components Copied/Adapted from Debug Screen ---
+
+    const SectionCard = ({ title, icon, children, accentColor }: { title: string; icon: string; children: React.ReactNode; accentColor?: string }) => (
+        <View style={[styles.sectionCard, { backgroundColor: isDark ? '#1C1C1E' : '#F2F2F7' }]}>
+            <View style={[styles.sectionHeader, accentColor ? { borderLeftColor: accentColor } : null]}>
+                <IconSymbol name={icon as any} size={16} color={accentColor || theme.icon} />
+                <ThemedText style={[styles.sectionTitle, accentColor ? { color: accentColor } : null]}>{title}</ThemedText>
+            </View>
+            {children}
+        </View>
+    );
+
+    const Pill = ({ label, active, onPress }: { label: string; active: boolean; onPress: () => void }) => (
+        <TouchableOpacity
+            onPress={onPress}
+            style={[
+                styles.pill,
+                active && { backgroundColor: theme.tint, borderColor: theme.tint },
+                !active && { borderColor: isDark ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.1)' }
+            ]}
+        >
+            <ThemedText style={[
+                styles.pillText,
+                active ? { color: isDark ? '#000' : '#FFF' } : { color: theme.text }
+            ]}>
+                {label}
+            </ThemedText>
+        </TouchableOpacity>
+    );
+
+    const CandidateCard = ({ item }: { item: Candidate }) => {
         const score = Math.round((item.matchScore ?? 0) * 100);
-        const scoreColor = score > 75 ? '#34C759' : score > 40 ? '#FF9500' : '#FF3B30';
+        const scoreColor = score > 75 ? '#32D74B' : score > 40 ? '#FF9500' : '#FF453A';
 
         return (
-            <GlassCard style={styles.card}>
+            <View style={[styles.candidateCard, { backgroundColor: isDark ? '#1C1C1E' : '#FFF' }]}>
                 <View style={styles.cardHeader}>
                     <View style={styles.avatar}>
                         <ThemedText style={styles.avatarText}>{item.name.charAt(0)}</ThemedText>
@@ -195,13 +194,13 @@ export default function DemoJaccardScreen() {
                                 key={sIdx}
                                 style={[
                                     styles.skillTag,
-                                    isMatch ? { backgroundColor: theme.tint } : { backgroundColor: isDark ? '#2C2C2E' : '#E5E5EA' }
+                                    isMatch ? { backgroundColor: theme.tint } : { backgroundColor: isDark ? '#2C2C2E' : '#F2F2F7' }
                                 ]}
                             >
                                 <ThemedText
                                     style={[
                                         styles.skillText,
-                                        isMatch ? { color: '#FFF' } : { color: theme.text, opacity: 0.7 }
+                                        isMatch ? { color: isDark ? '#000' : '#FFF' } : { color: theme.text, opacity: 0.7 }
                                     ]}
                                 >
                                     {SKILLS[sIdx]}
@@ -210,7 +209,7 @@ export default function DemoJaccardScreen() {
                         );
                     })}
                 </View>
-            </GlassCard>
+            </View>
         );
     };
 
@@ -225,51 +224,45 @@ export default function DemoJaccardScreen() {
 
     return (
         <ThemedView style={styles.container}>
-            <View style={styles.header}>
-                <GlassCard style={styles.headerGlass}>
-                    <View style={styles.headerRow}>
-                        <IconSymbol size={32} name="person.2.crop.square.stack.fill" color={theme.text} />
-                        <View>
-                            <ThemedText type="title" style={styles.title}>Skill Matcher</ThemedText>
-                            <ThemedText style={styles.subtitle}>Jaccard Set Similarity</ThemedText>
-                        </View>
+            {/* Blur Header like Debug Screen */}
+            <BlurView intensity={Platform.OS === 'ios' ? 80 : 0} tint={isDark ? 'dark' : 'light'} style={styles.headerGlass}>
+                <View style={styles.headerTop}>
+                    <View>
+                        <ThemedText style={styles.headerTitle}>SKILL MATCH</ThemedText>
+                        <ThemedText style={styles.headerSubtitle}>JACCARD RECRUITER</ThemedText>
                     </View>
-                </GlassCard>
-            </View>
-
-            <View style={styles.configSection}>
-                <ThemedText style={styles.sectionLabel}>REQUIRED SKILLS</ThemedText>
-                <View style={styles.chipContainer}>
-                    {SKILLS.map((skill, idx) => {
-                        const isSelected = selectedSkills.has(idx);
-                        return (
-                            <TouchableOpacity
-                                key={idx}
-                                style={[
-                                    styles.chip,
-                                    isSelected ? { backgroundColor: theme.tint, borderColor: theme.tint } : { borderColor: isDark ? '#3A3A3C' : '#C7C7CC' }
-                                ]}
-                                onPress={() => toggleSkill(idx)}
-                                activeOpacity={0.7}
-                            >
-                                <ThemedText style={[styles.chipText, isSelected && { color: '#FFF', fontWeight: '700' }]}>
-                                    {skill}
-                                </ThemedText>
-                            </TouchableOpacity>
-                        );
-                    })}
+                    <View style={styles.statusBadge}>
+                        <IconSymbol name="chart.pie.fill" size={14} color="#5856D6" />
+                        <ThemedText style={[styles.statusText, { color: '#5856D6' }]}>LIVE INDEX</ThemedText>
+                    </View>
                 </View>
-            </View>
+            </BlurView>
 
-            <FlatList
-                data={searchResults}
-                keyExtractor={(item) => item.id.toString()}
-                renderItem={renderCandidate}
-                contentContainerStyle={styles.listContent}
-                ListHeaderComponent={
-                    <ThemedText style={styles.sectionLabel}>TOP CANDIDATES ({searchResults.length})</ThemedText>
-                }
-            />
+            <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+
+                <SectionCard title="REQUIREMENTS" icon="gearshape.fill" accentColor="#5856D6">
+                    <ThemedText style={styles.helperText}>
+                        Select required skills to build the query set. Comparison uses Intersection over Union (IoU).
+                    </ThemedText>
+                    <View style={styles.pillRow}>
+                        {SKILLS.map((skill, idx) => (
+                            <Pill
+                                key={idx}
+                                label={skill}
+                                active={selectedSkills.has(idx)}
+                                onPress={() => toggleSkill(idx)}
+                            />
+                        ))}
+                    </View>
+                </SectionCard>
+
+                <ThemedText style={styles.listLabel}>TOP CANDIDATES</ThemedText>
+
+                {searchResults.map((candidate) => (
+                    <CandidateCard key={candidate.id} item={candidate} />
+                ))}
+
+            </ScrollView>
         </ThemedView>
     );
 }
@@ -278,39 +271,134 @@ const styles = StyleSheet.create({
     container: { flex: 1 },
     center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
 
-    header: { paddingHorizontal: 20, paddingTop: 60, marginBottom: 16 },
-    headerGlass: { padding: 16 },
-    headerRow: { flexDirection: 'row', alignItems: 'center', gap: 16 },
-    title: { fontSize: 22, fontWeight: '900' },
-    subtitle: { opacity: 0.6, fontSize: 13 },
-
-    configSection: { paddingHorizontal: 20, marginBottom: 20 },
-    sectionLabel: { fontSize: 11, fontWeight: '700', opacity: 0.5, marginBottom: 8, letterSpacing: 1 },
-
-    chipContainer: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-    chip: {
+    headerGlass: {
+        paddingTop: 60,
+        paddingBottom: 20,
+        paddingHorizontal: 20,
+        borderBottomWidth: StyleSheet.hairlineWidth,
+        borderColor: 'rgba(120,120,128,0.2)',
+        zIndex: 10,
+    },
+    headerTop: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+    },
+    headerTitle: {
+        fontSize: 22,
+        fontWeight: '900',
+        letterSpacing: -0.5,
+    },
+    headerSubtitle: {
+        fontSize: 12,
+        fontWeight: '700',
+        opacity: 0.5,
+        letterSpacing: 2,
+    },
+    statusBadge: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 6,
+        backgroundColor: 'rgba(88, 86, 214, 0.1)',
         paddingHorizontal: 12,
         paddingVertical: 6,
         borderRadius: 20,
+    },
+    statusText: {
+        fontSize: 10,
+        fontWeight: '800',
+        letterSpacing: 1,
+    },
+
+    scrollContent: {
+        padding: 16,
+        paddingBottom: 120,
+        gap: 16,
+    },
+
+    sectionCard: {
+        borderRadius: 16,
+        padding: 16,
+        gap: 12,
+    },
+    sectionHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
+        borderLeftWidth: 3,
+        borderLeftColor: 'transparent',
+        paddingLeft: 8,
+        marginLeft: -8,
+    },
+    sectionTitle: {
+        fontSize: 11,
+        fontWeight: '800',
+        letterSpacing: 1.5,
+        opacity: 0.6,
+    },
+    helperText: {
+        fontSize: 13,
+        opacity: 0.6,
+        marginTop: -4,
+        marginBottom: 8,
+        lineHeight: 18,
+    },
+
+    pillRow: {
+        flexDirection: 'row',
+        gap: 8,
+        flexWrap: 'wrap',
+    },
+    pill: {
+        paddingHorizontal: 12,
+        paddingVertical: 8,
+        borderRadius: 12,
         borderWidth: 1,
     },
-    chipText: { fontSize: 13 },
+    pillText: {
+        fontSize: 12,
+        fontWeight: '600',
+    },
 
-    listContent: { paddingHorizontal: 20, paddingBottom: 40, gap: 12 },
+    listLabel: {
+        fontSize: 11,
+        fontWeight: '700',
+        opacity: 0.5,
+        letterSpacing: 1.5,
+        marginTop: 8,
+        marginLeft: 8,
+    },
 
-    card: { padding: 16, gap: 12 },
+    candidateCard: {
+        borderRadius: 16,
+        padding: 16,
+        gap: 12,
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.05,
+        shadowRadius: 8,
+        elevation: 2,
+        borderWidth: StyleSheet.hairlineWidth,
+        borderColor: 'rgba(120,120,128,0.1)',
+    },
     cardHeader: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-    avatar: { width: 44, height: 44, borderRadius: 22, backgroundColor: 'rgba(120,120,128,0.1)', alignItems: 'center', justifyContent: 'center' },
+    avatar: {
+        width: 44,
+        height: 44,
+        borderRadius: 22,
+        backgroundColor: 'rgba(120,120,128,0.1)',
+        alignItems: 'center',
+        justifyContent: 'center'
+    },
     avatarText: { fontSize: 18, fontWeight: '800', opacity: 0.7 },
     name: { fontSize: 16, fontWeight: '700' },
     role: { fontSize: 13, opacity: 0.6 },
 
-    scoreBox: { alignItems: 'flex-end' },
-    scoreVal: { fontSize: 18, fontWeight: '900' },
+    scoreBox: { alignItems: 'flex-end', minWidth: 60 },
+    scoreVal: { fontSize: 18, fontWeight: '900', fontFamily: Platform.select({ ios: 'Courier', default: 'monospace' }) },
     scoreLabel: { fontSize: 9, opacity: 0.5, fontWeight: '700' },
 
     skillRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
     skillTag: { paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6 },
     skillText: { fontSize: 10, fontWeight: '600' }
 });
-
