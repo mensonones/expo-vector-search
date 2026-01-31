@@ -252,7 +252,7 @@ export default function DemoJaccardScreen() {
 
                 <SectionCard title="REQUIREMENTS" icon="gearshape.fill" accentColor="#5856D6">
                     <ThemedText style={styles.helperText}>
-                        Selecione as habilidades para criar um conjunto de consulta. A comparação usa IoU (Intersection over Union) em vetores esparsos.
+                        Select skills to build the query set. Comparison uses Intersection over Union (IoU) on sparse vectors.
                     </ThemedText>
                     <View style={styles.pillRow}>
                         {SKILLS.map((skill, idx) => (
