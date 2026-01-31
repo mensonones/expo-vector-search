@@ -21,6 +21,7 @@ Unlike traditional databases that search for exact matches (e.g., "Product ID = 
 - **Embeddings**: Data (images, text) is converted into an array of numbers (vectors) that represent its meaning.
 - **Distance**: The "similarity" between two items is calculated using the **Cosine Distance** between their vectors.
 - **Native Binary Loading**: Since `v0.2.0`, vectors can be loaded directly from `.bin` files into C++ memory, eliminating the JavaScript bridge bottleneck for large datasets.
+- **Dynamic CRUD & Hooks**: Since `v0.3.0`, the engine supports live updates (`remove`/`update`) and provides a simplified `useVectorSearch` hook for React.
 - **HNSW Algorithm**: Instead of checking every single item (slow), we use a mathematical graph that lets us jump through the data to find the nearest neighbors in sub-millisecond time.
 
 ## Project Structure
@@ -136,11 +137,11 @@ The application includes a built-in benchmark tool that compares the native C++ 
 
 - [x] **Dynamic CRUD Support**: Implement `remove(key)` and `update(key, vector)` for live index management.
 - [x] **Metadata Filtering**: Enable search with predicates (e.g., filtering by category or availability).
+- [x] **Simplified React Hooks**: Abstractions like `useVectorSearch` for automatic resource management.
 - [ ] **Architecture-Specific SIMD**: Enable NEON/SVE/AVX optimizations for Android to narrow the F32/Int8 performance gap.
 - [ ] **On-Device Embeddings**: Local text/image to vector conversion (using MediaPipe or ONNX).
 - [ ] **Hybrid Search**: Combine vector similarity with traditional keyword-based search.
 - [ ] **USearch Engine Upgrade**: Migrate from `v2.9.0` to `v2.23.0+` for better precision.
-- [x] **Simplified React Hooks**: Abstractions like `useVectorSearch` for automatic resource management.
 - [ ] **Background Indexing**: Offload heavy ingestion to native threads to prevent UI stutters.
 - [ ] **SQLite Synchronization**: Built-in utilities to sync vector indices with `expo-sqlite`.
 
