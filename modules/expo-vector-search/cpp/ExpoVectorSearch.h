@@ -114,6 +114,29 @@ inline std::string normalizePath(jsi::Runtime &runtime, std::string path) {
   return path;
 }
 
+// Custom Jaccard metric for float vectors (treats values > 0.5 as 1, else 0)
+// This is used because USearch default Jaccard is bitset-oriented.
+inline float jaccard_f32(std::size_t a_ptr, std::size_t b_ptr, std::size_t n,
+                         std::size_t) {
+  const float *a = reinterpret_cast<const float *>(a_ptr);
+  const float *b = reinterpret_cast<const float *>(b_ptr);
+  float intersection = 0;
+  float union_count = 0;
+
+  for (std::size_t i = 0; i < n; ++i) {
+    bool in_a = a[i] > 0.5f;
+    bool in_b = b[i] > 0.5f;
+    if (in_a && in_b)
+      intersection += 1.0f;
+    if (in_a || in_b)
+      union_count += 1.0f;
+  }
+
+  if (union_count == 0)
+    return 0.0f; // Perfect match for empty sets
+  return 1.0f - (intersection / union_count);
+}
+
 class VectorIndexHostObject : public jsi::HostObject {
 public:
   using Index = index_dense_t;
@@ -122,9 +145,19 @@ public:
                         metric_kind_t metric_kind = metric_kind_t::cos_k) {
     scalar_kind_t scalar_kind =
         quantized ? scalar_kind_t::i8_k : scalar_kind_t::f32_k;
-    metric_punned_t metric(dimensions, metric_kind, scalar_kind);
 
-    _index = std::make_unique<Index>(Index::make(metric));
+    // Special case: Jaccard with f32 (not bitsets)
+    if (metric_kind == metric_kind_t::jaccard_k && !quantized) {
+      metric_punned_t metric(dimensions,
+                             reinterpret_cast<std::uintptr_t>(&jaccard_f32),
+                             metric_punned_signature_t::array_array_size_k,
+                             metric_kind_t::jaccard_k, scalar_kind_t::f32_k);
+      _index = std::make_unique<Index>(Index::make(metric));
+    } else {
+      metric_punned_t metric(dimensions, metric_kind, scalar_kind);
+      _index = std::make_unique<Index>(Index::make(metric));
+    }
+
     if (!_index)
       throw std::runtime_error("Failed to initialize USearch index");
 

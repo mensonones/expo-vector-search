@@ -25,6 +25,15 @@ type ColorItem = {
     hex: string;
 };
 
+// Simple pseudo-random generator to ensure consistent demo data across devices
+const seedRandom = (seed: number) => {
+    let state = seed;
+    return () => {
+        state = (state * 1664525 + 1013904223) % 4294967296;
+        return state / 4294967296;
+    };
+};
+
 export default function DemoColorsScreen() {
     const colorScheme = useColorScheme() ?? 'light';
     const theme = Colors[colorScheme];
@@ -38,14 +47,15 @@ export default function DemoColorsScreen() {
 
     // Initialize Index and Generate Colors
     useEffect(() => {
+        const random = seedRandom(123); // Fixed seed
         setTimeout(() => {
             const idx = new VectorIndex(VEC_DIM, { metric: 'l2sq' });
             const generatedColors: ColorItem[] = [];
 
             for (let i = 0; i < TOTAL_COLORS; i++) {
-                const r = Math.random();
-                const g = Math.random();
-                const b = Math.random();
+                const r = random();
+                const g = random();
+                const b = random();
 
                 // Add to Index
                 idx.add(i, new Float32Array([r, g, b]));
@@ -62,7 +72,7 @@ export default function DemoColorsScreen() {
             setIsReady(true);
 
             // Auto-select first target
-            selectTarget(generatedColors[Math.floor(Math.random() * TOTAL_COLORS)], idx, generatedColors);
+            selectTarget(generatedColors[Math.floor(random() * TOTAL_COLORS)], idx, generatedColors);
 
         }, 500);
     }, []);

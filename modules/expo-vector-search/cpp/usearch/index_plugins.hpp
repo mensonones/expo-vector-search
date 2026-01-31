@@ -1563,8 +1563,8 @@ public:
       metric_kind_t metric_kind,                                          //
       scalar_kind_t scalar_kind) noexcept
       : raw_ptr_(reinterpret_cast<punned_ptr_t>(metric_uintptr)),
-        dimensions_(dimensions), metric_kind_(metric_kind),
-        scalar_kind_(scalar_kind) {
+        raw_arg3_(dimensions), raw_arg4_(dimensions), dimensions_(dimensions),
+        metric_kind_(metric_kind), scalar_kind_(scalar_kind) {
 
     // We don't need to explicitly parse signature, as all of them are
     // compatible.

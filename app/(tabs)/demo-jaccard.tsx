@@ -46,14 +46,24 @@ const ROLES = [
     'Mobile Dev', 'DevOps Engineer',
 ];
 
+// Simple pseudo-random generator to ensure consistent demo data across devices
+const seedRandom = (seed: number) => {
+    let state = seed;
+    return () => {
+        state = (state * 1664525 + 1013904223) % 4294967296;
+        return state / 4294967296;
+    };
+};
+
 const generateCandidates = (count: number): Candidate[] => {
+    const random = seedRandom(42); // Fixed seed
     return Array.from({ length: count }).map((_, i) => {
         const vector = new Float32Array(SKILL_COUNT).fill(0);
         const skillIndices: number[] = [];
-        const skillCount = 3 + Math.floor(Math.random() * 5); // 3-7 skills per person
+        const skillCount = 3 + Math.floor(random() * 5); // 3-7 skills per person
 
         for (let k = 0; k < skillCount; k++) {
-            const skillIdx = Math.floor(Math.random() * SKILL_COUNT);
+            const skillIdx = Math.floor(random() * SKILL_COUNT);
             if (vector[skillIdx] === 0) {
                 vector[skillIdx] = 1;
                 skillIndices.push(skillIdx);
@@ -242,7 +252,7 @@ export default function DemoJaccardScreen() {
 
                 <SectionCard title="REQUIREMENTS" icon="gearshape.fill" accentColor="#5856D6">
                     <ThemedText style={styles.helperText}>
-                        Select required skills to build the query set. Comparison uses Intersection over Union (IoU).
+                        Selecione as habilidades para criar um conjunto de consulta. A comparação usa IoU (Intersection over Union) em vetores esparsos.
                     </ThemedText>
                     <View style={styles.pillRow}>
                         {SKILLS.map((skill, idx) => (
