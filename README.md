@@ -97,7 +97,6 @@ After running the scripts, your `assets/chunks/` directory should contain multip
 ## Platform Support
 
 > [!IMPORTANT]
-> The current version of this module has been primary developed and **thoroughly tested on Android**. 
 > - **Android**: Fully supported (tested on Galaxy S23 FE).
 > - **iOS**: Fully supported (tested on iPhone 12).
 
@@ -110,22 +109,25 @@ The core logic resides in the `modules/expo-vector-search` directory. For detail
 The application includes a built-in benchmark tool that compares the native C++ implementation against a naive JavaScript baseline. Results obtained using **Release builds** on physical devices.
 
 ### JS vs. Native Engine Race
-| Platform | JavaScript (Runtime Loop) | Expo Vector Search (Native) | Speedup |
-| :--- | :--- | :--- | :--- |
-| **Android** (S23 FE) | 6.20 ms | 0.15 ms | **~41x** |
-| **iOS** (iPhone 12) | 12.06 ms | 0.10 ms | **~120x** |
+| Platform | JavaScript | Native (Base C++) | Native (SIMD/NEON) | Speedup |
+| :--- | :--- | :--- | :--- | :--- |
+| **Android** (S23 FE) | 7.08 ms | 0.15 ms | **0.09 ms** | **~78x** |
+| **iOS** (iPhone 12) | 13.21 ms | 0.10 ms | **0.06 ms** | **~220x** |
 
 ### Bulk Ingestion (1,000 items)
-| Platform | Individual `.add` | Batch `.addBatch` |
-| :--- | :--- | :--- |
-| **Android** (S23 FE) | 79.87 ms | 76.70 ms |
-| **iOS** (iPhone 12) | 107.94 ms | 102.59 ms |
+| Platform | Method | Base C++ (v0.2.0) | SIMD/NEON (v0.4.0) | Improvement |
+| :--- | :--- | :--- | :--- | :--- |
+| **Android** (S23 FE) | Batch `.addBatch` | 76.70 ms | **81.35 ms** | **Zero-Copy + Proxy** |
+| **iOS** (iPhone 12) | Batch `.addBatch` | 102.59 ms | **73.14 ms** | **NEON + Proxy** |
 
 ### Memory Optimization (10,000 items, 384 dims)
-| Platform | Full Precision (F32) | Quantized (Int8) | Savings |
-| :--- | :--- | :--- | :--- |
-| **Android** (S23 FE) | 36,943.84 KB | 20,559.84 KB | **~44%** |
-| **iOS** (iPhone 12) | 36,943.97 KB | 20,559.97 KB | **~44%** |
+### Memory & Indexing (10,000 items, 384d)
+| Platform | Feature | Base C++ (v0.2.0) | SIMD/NEON (v0.4.0) | Improvement |
+| :--- | :--- | :--- | :--- | :--- |
+| **Android** (S23 FE) | F32 Indexing | ~9.284 ms | 10.591 ms | Proxy Overhead |
+| **Android** (S23 FE) | Int8 Indexing | ~34.608 ms | **3.509 ms** | **~10x Faster** |
+| **iOS** (iPhone 12) | F32 Indexing | ~9.200 ms | **8.803 ms** | **Fastest** |
+| **iOS** (iPhone 12) | Int8 Indexing | ~34.000 ms | **1.867 ms** | **~18x Faster** |
 
 ## Acknowledgements
 
@@ -138,10 +140,10 @@ The application includes a built-in benchmark tool that compares the native C++ 
 - [x] **Dynamic CRUD Support**: Implement `remove(key)` and `update(key, vector)` for live index management.
 - [x] **Metadata Filtering**: Enable search with predicates (e.g., filtering by category or availability).
 - [x] **Simplified React Hooks**: Abstractions like `useVectorSearch` for automatic resource management.
-- [ ] **Architecture-Specific SIMD**: Enable NEON/SVE/AVX optimizations for Android to narrow the F32/Int8 performance gap.
+- [x] **Architecture-Specific SIMD**: Enabled NEON/AVX optimizations via SimSIMD for Android and iOS.
 - [ ] **On-Device Embeddings**: Local text/image to vector conversion (using MediaPipe or ONNX).
 - [ ] **Hybrid Search**: Combine vector similarity with traditional keyword-based search.
-- [ ] **USearch Engine Upgrade**: Migrate from `v2.9.0` to `v2.23.0+` for better precision.
+- [x] **USearch Engine Upgrade**: Migrate from `v2.9.0` to `v2.23.0+` for better precision.
 - [ ] **Background Indexing**: Offload heavy ingestion to native threads to prevent UI stutters.
 - [ ] **SQLite Synchronization**: Built-in utilities to sync vector indices with `expo-sqlite`.
 

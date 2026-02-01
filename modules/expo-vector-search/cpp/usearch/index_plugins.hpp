@@ -1511,6 +1511,17 @@ private:
   using punned_arg_t = std::size_t;
   using punned_ptr_t = result_t (*)(std::size_t, std::size_t, std::size_t,
                                     std::size_t);
+#if USEARCH_USE_SIMSIMD
+  __attribute__((hot)) inline static result_t
+  simsimd_metric_dense_proxy(punned_arg_t a, punned_arg_t b, punned_arg_t n,
+                             punned_arg_t kernel_ptr) noexcept {
+    simsimd_metric_dense_punned_t kernel =
+        (simsimd_metric_dense_punned_t)kernel_ptr;
+    simsimd_distance_t result;
+    kernel((void const *)a, (void const *)b, (simsimd_size_t)n, &result);
+    return (result_t)result;
+  }
+#endif
 
   punned_ptr_t raw_ptr_ = nullptr;
   punned_arg_t raw_arg3_ = 0;
@@ -1580,20 +1591,20 @@ public:
     switch (isa_kind_) {
     case simsimd_cap_serial_k:
       return "serial";
-    case simsimd_cap_arm_neon_k:
+    case simsimd_cap_neon_k:
       return "neon";
-    case simsimd_cap_arm_sve_k:
+    case simsimd_cap_sve_k:
       return "sve";
-    case simsimd_cap_x86_avx2_k:
+    case simsimd_cap_haswell_k:
       return "avx2";
-    case simsimd_cap_x86_avx512_k:
+    case simsimd_cap_skylake_k:
       return "avx512";
-    case simsimd_cap_x86_avx2fp16_k:
-      return "avx2+f16";
-    case simsimd_cap_x86_avx512fp16_k:
-      return "avx512+f16";
-    case simsimd_cap_x86_avx512vpopcntdq_k:
+    case simsimd_cap_ice_k:
       return "avx512+popcnt";
+    case simsimd_cap_sapphire_k:
+      return "avx512+f16";
+    case simsimd_cap_sve2_k:
+      return "sve2";
     default:
       return "unknown";
     }
@@ -1619,7 +1630,7 @@ private:
     simsimd_capability_t allowed = simsimd_cap_any_k;
     switch (metric_kind_) {
     case metric_kind_t::ip_k:
-      kind = simsimd_metric_ip_k;
+      kind = simsimd_metric_dot_k;
       break;
     case metric_kind_t::cos_k:
       kind = simsimd_metric_cos_k;
@@ -1658,14 +1669,16 @@ private:
     default:
       break;
     }
-    simsimd_metric_punned_t simd_metric = NULL;
+    simsimd_kernel_punned_t simd_metric = NULL;
     simsimd_capability_t simd_kind = simsimd_cap_any_k;
-    simsimd_find_metric_punned(kind, datatype, simd_caps, allowed, &simd_metric,
+    simsimd_find_kernel_punned(kind, datatype, simd_caps, allowed, &simd_metric,
                                &simd_kind);
     if (simd_metric == nullptr)
       return false;
 
-    std::memcpy(&raw_ptr_, &simd_metric, sizeof(simd_metric));
+    raw_ptr_ = &simsimd_metric_dense_proxy;
+    raw_arg3_ = dimensions_;
+    raw_arg4_ = (punned_arg_t)simd_metric;
     isa_kind_ = simd_kind;
     return true;
   }

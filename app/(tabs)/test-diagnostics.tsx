@@ -6,7 +6,7 @@ import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import * as Haptics from 'expo-haptics';
 import { VectorIndex } from 'expo-vector-search';
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { ActivityIndicator, Platform, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
 
 type LabStatus = 'idle' | 'running' | 'completed';
@@ -28,6 +28,16 @@ export default function PerformanceLabScreen() {
     const [i8Memory, setI8Memory] = useState<number | null>(null);
     const [f32Time, setF32Time] = useState<number | null>(null);
     const [i8Time, setI8Time] = useState<number | null>(null);
+    const [simdBackend, setSimdBackend] = useState<string>('-');
+
+    useEffect(() => {
+        try {
+            const idx = new VectorIndex(1);
+            setSimdBackend(idx.isa || 'unknown');
+        } catch (e) {
+            setSimdBackend('n/a');
+        }
+    }, []);
 
     const DIMENSIONS = 128;
     const COUNT = 1000;
@@ -178,7 +188,7 @@ export default function PerformanceLabScreen() {
                         <IconSymbol name="sparkles" size={32} color={theme.tint} />
                     </View>
                     <ThemedText type="title" style={styles.title}>Performance Lab</ThemedText>
-                    <ThemedText style={styles.subtitle}>Scientific benchmarking on your device</ThemedText>
+                    <ThemedText style={styles.subtitle}>Scientific benchmarking • {simdBackend.toUpperCase()}</ThemedText>
                 </View>
 
                 {/* Section 1: Search Race */}

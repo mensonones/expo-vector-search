@@ -6,18 +6,16 @@ set(CMAKE_VERBOSE_MAKEFILE OFF)
 set(CMAKE_CXX_STANDARD 17)
 # Disable external FP16 library requirement (use native or fallback)
 add_compile_definitions(USEARCH_USE_FP16LIB=0)
+# Enable SimSIMD for hardware acceleration (only on 64-bit architectures)
+if(${ANDROID_ABI} STREQUAL "arm64-v8a" OR ${ANDROID_ABI} STREQUAL "x86_64")
+    add_compile_definitions(USEARCH_USE_SIMSIMD=1)
+else()
+    add_compile_definitions(USEARCH_USE_SIMSIMD=0)
+endif()
 
-# 2. Download and Configure USearch
-include(FetchContent)
-
-FetchContent_Declare(
-  usearch
-  GIT_REPOSITORY https://github.com/unum-cloud/usearch.git
-  GIT_TAG        v2.9.0 # Use a recent stable version
-)
-
-# Make usearch available to the project
-FetchContent_MakeAvailable(usearch)
+# 2. Configure USearch (Use Local Headers)
+# We use the local version in ../cpp/usearch to ensure consistency with iOS
+# and to avoid version drift or network dependencies during build.
 
 # 3. Define the shared library
 add_library(
@@ -27,12 +25,9 @@ add_library(
 )
 
 # 4. Include directories (USearch and React Native JSI)
-# Note: React Native defines variables for includes, but if it fails,
-# usearch is header-only, so we need to focus on its include path.
 target_include_directories(
   expo-vector-search
   PUBLIC
-  ${usearch_SOURCE_DIR}/include
   ${CMAKE_CURRENT_SOURCE_DIR}/../cpp
 )
 

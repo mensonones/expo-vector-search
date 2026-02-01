@@ -44,6 +44,16 @@ export default function DemoColorsScreen() {
     const [isReady, setIsReady] = useState(false);
     const [targetColor, setTargetColor] = useState<ColorItem | null>(null);
     const [matches, setMatches] = useState<ColorItem[]>([]);
+    const [simdBackend, setSimdBackend] = useState<string>('-');
+
+    useEffect(() => {
+        try {
+            const idx = new VectorIndex(1);
+            setSimdBackend(idx.isa || 'unknown');
+        } catch (e) {
+            setSimdBackend('n/a');
+        }
+    }, []);
 
     // Initialize Index and Generate Colors
     useEffect(() => {
@@ -116,7 +126,7 @@ export default function DemoColorsScreen() {
                         <IconSymbol size={32} name="paintpalette.fill" color={theme.text} style={{ opacity: 0.8 }} />
                         <View>
                             <ThemedText type="title" style={styles.title}>L2 Color Matcher</ThemedText>
-                            <ThemedText style={styles.subtitle}>Euclidean distance in RGB space.</ThemedText>
+                            <ThemedText style={styles.subtitle}>Euclidean Space • {simdBackend.toUpperCase()}</ThemedText>
                         </View>
                     </View>
                 </GlassCard>

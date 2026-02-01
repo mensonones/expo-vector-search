@@ -5,7 +5,7 @@ import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { BlurView } from 'expo-blur';
 import { VectorIndex } from 'expo-vector-search';
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
     LayoutAnimation,
     Platform,
@@ -41,6 +41,16 @@ export default function TestMetricsScreen() {
     const [results, setResults] = useState<MetricResult[]>([]);
     const [logs, setLogs] = useState<string[]>([]);
     const [isRunning, setIsRunning] = useState(false);
+    const [simdBackend, setSimdBackend] = useState<string>('-');
+
+    useEffect(() => {
+        try {
+            const idx = new VectorIndex(1);
+            setSimdBackend(idx.isa || 'unknown');
+        } catch (e) {
+            setSimdBackend('n/a');
+        }
+    }, []);
 
     const addLog = (msg: string) => setLogs((prev) => [...prev, msg]);
 
@@ -123,7 +133,7 @@ export default function TestMetricsScreen() {
                 <View style={styles.headerTop}>
                     <View>
                         <ThemedText style={styles.headerTitle}>METRIC LAB</ThemedText>
-                        <ThemedText style={styles.headerSubtitle}>COMPARE DISTANCES</ThemedText>
+                        <ThemedText style={styles.headerSubtitle}>COMPARE DISTANCES • {simdBackend.toUpperCase()}</ThemedText>
                     </View>
                     <TouchableOpacity
                         style={[styles.runBtn, { backgroundColor: isRunning ? themeColors.icon : '#007AFF' }]}

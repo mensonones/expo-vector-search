@@ -90,6 +90,16 @@ export default function DemoJaccardScreen() {
     const [selectedSkills, setSelectedSkills] = useState<Set<number>>(new Set());
     const [searchResults, setSearchResults] = useState<Candidate[]>([]);
     const [candidates] = useState<Candidate[]>(() => generateCandidates(20));
+    const [simdBackend, setSimdBackend] = useState<string>('-');
+
+    useEffect(() => {
+        try {
+            const idx = new VectorIndex(1);
+            setSimdBackend(idx.isa || 'unknown');
+        } catch (e) {
+            setSimdBackend('n/a');
+        }
+    }, []);
 
     // Initialize Jaccard Index
     useEffect(() => {
@@ -239,7 +249,7 @@ export default function DemoJaccardScreen() {
                 <View style={styles.headerTop}>
                     <View>
                         <ThemedText style={styles.headerTitle}>SKILL MATCH</ThemedText>
-                        <ThemedText style={styles.headerSubtitle}>JACCARD RECRUITER</ThemedText>
+                        <ThemedText style={styles.headerSubtitle}>JACCARD • {simdBackend.toUpperCase()}</ThemedText>
                     </View>
                     <View style={styles.statusBadge}>
                         <IconSymbol name="chart.pie.fill" size={14} color="#5856D6" />

@@ -1,4 +1,5 @@
 import { Image } from 'expo-image';
+import { VectorIndex } from 'expo-vector-search';
 import React, { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Dimensions, FlatList, StyleSheet, TextInput, TouchableOpacity, View } from 'react-native';
 
@@ -54,6 +55,16 @@ export default function VectorSearchScreen() {
     const [searchTerm, setSearchTerm] = useState('');
     const [results, setResults] = useState<Product[]>([]);
     const [isSearching, setIsSearching] = useState(false);
+    const [simdBackend, setSimdBackend] = useState<string>('-');
+
+    useEffect(() => {
+        try {
+            const idx = new VectorIndex(1);
+            setSimdBackend(idx.isa || 'unknown');
+        } catch (e) {
+            setSimdBackend('n/a');
+        }
+    }, []);
 
     const { isInitializing, loadedCount, allProductsRef, vectorIndex } = useVectorCatalog();
     const searchTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -155,7 +166,7 @@ export default function VectorSearchScreen() {
             <View style={styles.header}>
                 <ThemedText type="title" style={styles.title}>Visual Search</ThemedText>
                 <ThemedText style={styles.subtitle}>
-                    Find patterns beyond exact text matches.
+                    Find patterns • {simdBackend.toUpperCase()}
                 </ThemedText>
 
                 <View style={styles.statsBadge}>

@@ -116,10 +116,8 @@ inline std::string normalizePath(jsi::Runtime &runtime, std::string path) {
 
 // Custom Jaccard metric for float vectors (treats values > 0.5 as 1, else 0)
 // This is used because USearch default Jaccard is bitset-oriented.
-inline float jaccard_f32(std::size_t a_ptr, std::size_t b_ptr, std::size_t n,
+inline float jaccard_f32(const float *a, const float *b, std::size_t n,
                          std::size_t) {
-  const float *a = reinterpret_cast<const float *>(a_ptr);
-  const float *b = reinterpret_cast<const float *>(b_ptr);
   float intersection = 0;
   float union_count = 0;
 
@@ -133,7 +131,7 @@ inline float jaccard_f32(std::size_t a_ptr, std::size_t b_ptr, std::size_t n,
   }
 
   if (union_count == 0)
-    return 0.0f; // Perfect match for empty sets
+    return 0.0f;
   return 1.0f - (intersection / union_count);
 }
 
@@ -141,8 +139,14 @@ class VectorIndexHostObject : public jsi::HostObject {
 public:
   using Index = index_dense_t;
 
+  size_t _threads;
+
   VectorIndexHostObject(int dimensions, bool quantized,
                         metric_kind_t metric_kind = metric_kind_t::cos_k) {
+    _threads = std::thread::hardware_concurrency();
+    if (_threads == 0)
+      _threads = 1;
+
     scalar_kind_t scalar_kind =
         quantized ? scalar_kind_t::i8_k : scalar_kind_t::f32_k;
 
@@ -158,15 +162,20 @@ public:
       _index = std::make_unique<Index>(Index::make(metric));
     }
 
-    if (!_index)
+    LOGD("Initializing Index HostObject: dims=%d, quantized=%d, metric=%d",
+         dimensions, (int)quantized, (int)metric_kind);
+    if (!_index) {
+      LOGD("Index creation failed early!");
       throw std::runtime_error("Failed to initialize USearch index");
+    }
+    LOGD("Index created successfully. Cap=%zu", _index->capacity());
 
-    size_t threads = std::thread::hardware_concurrency();
-    if (threads == 0)
-      threads = 1;
-
-    if (!_index->reserve(index_limits_t(100, threads)))
+    LOGD("Reserving index: threads=%zu", _threads);
+    if (!_index->reserve(index_limits_t(100, _threads))) {
       LOGE("Failed to reserve initial capacity");
+    }
+    LOGD("Initial reserve done. Index cap=%zu, size=%zu, threads=%zu",
+         _index->capacity(), _index->size(), _index->limits().threads());
   }
 
   jsi::Value get(jsi::Runtime &runtime, const jsi::PropNameID &name) override {
@@ -178,6 +187,11 @@ public:
       return jsi::Value(_index ? (double)_index->size() : 0);
     if (methodName == "memoryUsage")
       return jsi::Value(_index ? (double)_index->memory_usage() : 0);
+    if (methodName == "isa") {
+      const char *isa = _index ? _index->metric().isa_name() : "unknown";
+      LOGD("isa property accessed: %s", isa);
+      return jsi::String::createFromUtf8(runtime, isa);
+    }
 
     if (methodName == "delete") {
       return jsi::Function::createFromHostFunction(
@@ -218,9 +232,12 @@ public:
               if (newCapacity == 0)
                 newCapacity = 100;
               LOGD("Resizing index to: %zu", newCapacity);
-              _index->reserve(newCapacity);
+              _index->reserve(index_limits_t(newCapacity, _threads));
             }
+            LOGD("Attempting to add: key=%llu, ptr=%p, dim=%zu",
+                 (unsigned long long)key, vecData, _index->dimensions());
             auto result = _index->add(key, vecData);
+            LOGD("Add completed: key=%llu", (unsigned long long)key);
             if (!result) {
               LOGE("Failed to add vector: %s", result.error.what());
               throw jsi::JSError(runtime, "Error adding: " +
@@ -283,7 +300,7 @@ public:
                 newCapacity = _index->size() + batchCount + 100;
 
               LOGD("Resizing index for batch to: %zu", newCapacity);
-              _index->reserve(newCapacity);
+              _index->reserve(index_limits_t(newCapacity, _threads));
             }
 
             for (size_t i = 0; i < batchCount; ++i) {
@@ -371,8 +388,10 @@ public:
             if (!_index)
               throw jsi::JSError(runtime, "VectorIndex has been deleted.");
 
+            LOGD("search: starting...");
             auto [queryData, querySize] = getRawVector(runtime, arguments[0]);
             int resultsCount = static_cast<int>(arguments[1].asNumber());
+            LOGD("search: querySize=%zu, count=%d", querySize, resultsCount);
 
             bool hasFilter = false;
             std::unordered_set<default_key_t> allowedSet;

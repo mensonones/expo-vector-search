@@ -7,11 +7,26 @@ import { ThemedView } from '@/components/themed-view';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import { VectorIndex } from 'expo-vector-search';
+import { useEffect, useState } from 'react';
 
 export default function HomeScreen() {
   const colorScheme = useColorScheme() ?? 'light';
   const isDark = colorScheme === 'dark';
   const theme = Colors[colorScheme];
+  const [simdBackend, setSimdBackend] = useState<string>('checking...');
+
+  useEffect(() => {
+    try {
+      const idx = new VectorIndex(1);
+      setSimdBackend(idx.isa || 'unknown');
+      // We don't necessarily need to delete() for this tiny check,
+      // but good practice if we were allocating strictly.
+      // idx.delete();
+    } catch (e) {
+      setSimdBackend('n/a');
+    }
+  }, []);
 
   const SectionCard = ({ title, icon, children, accentColor }: { title: string; icon: string; children: React.ReactNode; accentColor?: string }) => (
     <View style={[styles.sectionCard, { backgroundColor: isDark ? '#1C1C1E' : '#FFFFFF' }]}>
@@ -37,7 +52,7 @@ export default function HomeScreen() {
         {/* Header Section */}
         <View style={styles.titleSection}>
           <View style={styles.badge}>
-            <ThemedText style={styles.badgeText}>v0.2.0</ThemedText>
+            <ThemedText style={styles.badgeText}>v0.2.0 • {simdBackend.toUpperCase()}</ThemedText>
           </View>
           <ThemedText type="title" style={styles.headerTitle}>Distance Metrics</ThemedText>
           <ThemedText style={styles.headerSubtitle}>

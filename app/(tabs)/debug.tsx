@@ -412,6 +412,12 @@ export default function DebugScreen() {
                             {(indexOptions?.quantization || 'f32').toUpperCase()}
                         </ThemedText>
                     </View>
+                    <View style={styles.statItem}>
+                        <ThemedText style={styles.statLabel}>SIMD</ThemedText>
+                        <ThemedText style={[styles.statValue, { color: '#32D74B' }]}>
+                            {(vectorIndex?.isa || '-').toUpperCase()}
+                        </ThemedText>
+                    </View>
                 </View>
             </BlurView>
 

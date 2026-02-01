@@ -21,6 +21,7 @@ interface VectorIndexHostObject {
   dimensions: number;
   count: number;
   memoryUsage: number;
+  isa: string;
   add(key: number, vector: Vector): void;
   remove(key: number): void;
   update(key: number, vector: Vector): void;
@@ -86,6 +87,13 @@ export class VectorIndex {
    */
   get memoryUsage(): number {
     return this._index.memoryUsage;
+  }
+
+  /**
+   * The SIMD Instruction Set Architecture being used (e.g. 'neon', 'avx2', 'serial').
+   */
+  get isa(): string {
+    return this._index.isa;
   }
 
   /**

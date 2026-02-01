@@ -55,6 +55,16 @@ export default function DemoHammingScreen() {
     const [index, setIndex] = useState<VectorIndex | null>(null);
     const [files, setFiles] = useState<FileSignature[]>([]);
     const [scannedCount, setScannedCount] = useState(0);
+    const [simdBackend, setSimdBackend] = useState<string>('-');
+
+    useEffect(() => {
+        try {
+            const idx = new VectorIndex(1);
+            setSimdBackend(idx.isa || 'unknown');
+        } catch (e) {
+            setSimdBackend('n/a');
+        }
+    }, []);
 
     // Initialize Index
     useEffect(() => {
@@ -179,7 +189,7 @@ export default function DemoHammingScreen() {
                     <IconSymbol size={42} name="doc.text.magnifyingglass" color={theme.text} style={{ opacity: 0.8 }} />
                     <ThemedText type="title" style={styles.title}>Deduplicator</ThemedText>
                     <ThemedText style={styles.subtitle}>
-                        Hamming distance for binary signatures.
+                        Hamming Metric • {simdBackend.toUpperCase()}
                     </ThemedText>
                 </GlassCard>
             </View>
