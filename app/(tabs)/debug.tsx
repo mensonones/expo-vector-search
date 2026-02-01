@@ -38,7 +38,7 @@ export default function DebugScreen() {
     const isDark = colorScheme === 'dark';
     const themeColors = Colors[colorScheme];
 
-    const { vectorIndex, loadedCount, isInitializing, resetIndex, indexOptions } = useVectorCatalog();
+    const { vectorIndex, loadedCount, isInitializing, resetIndex, indexOptions, progress } = useVectorCatalog();
 
     const [logs, setLogs] = useState<LogEntry[]>([]);
     const [batchSize, setBatchSize] = useState<1000 | 10000>(1000);
@@ -113,12 +113,13 @@ export default function DebugScreen() {
     };
 
     // === BENCHMARK ===
-    const runBenchmark = () => {
+    const runBenchmark = async () => {
         if (!vectorIndex) return;
         const DIM = vectorIndex.dimensions;
         addLog(`Generating ${batchSize.toLocaleString()} vectors (${DIM}D)...`, 'info');
 
-        setTimeout(() => {
+        // Create data in background to avoid blocking initial log
+        setTimeout(async () => {
             const keys = new Int32Array(batchSize);
             const vectors = new Float32Array(batchSize * DIM);
 
@@ -131,10 +132,24 @@ export default function DebugScreen() {
 
             const start = performance.now();
             try {
-                vectorIndex.addBatch(keys, vectors);
+                // Polling for progress log
+                const progressInterval = setInterval(() => {
+                    const p = vectorIndex.indexingProgress;
+                    if (vectorIndex.isIndexing) {
+                        addLog(`Indexing... ${(p.percentage * 100).toFixed(0)}%`, 'warning');
+                    } else {
+                        clearInterval(progressInterval);
+                    }
+                }, 500); // 500ms for logs is enough
+
+                // Now returns a Promise!
+                const result = await vectorIndex.addBatch(keys, vectors);
+                clearInterval(progressInterval);
+
                 const duration = performance.now() - start;
                 const itemsPerSec = (batchSize / (duration / 1000)).toFixed(0);
-                addLog(`✓ ${batchSize / 1000}k items in ${duration.toFixed(0)}ms (${itemsPerSec}/sec)`, 'success');
+
+                addLog(`✓ ${batchSize / 1000}k items: Interface=${duration.toFixed(0)}ms, Native=${result.duration.toFixed(1)}ms (${itemsPerSec}/sec)`, 'success');
             } catch (e: unknown) {
                 addLog(`Benchmark Failed: ${e instanceof Error ? e.message : 'Unknown error'}`, 'error');
             }
@@ -383,7 +398,11 @@ export default function DebugScreen() {
                         <ThemedText style={styles.headerSubtitle}>NATIVE DEBUGGER v2</ThemedText>
                     </View>
                     <View style={styles.statusBadge}>
-                        <ThemedText style={styles.statusText}>{isInitializing ? 'INDEXING' : 'ONLINE'}</ThemedText>
+                        <ThemedText style={styles.statusText}>
+                            {isInitializing || vectorIndex?.isIndexing
+                                ? `INDEXING ${progress.toFixed(0)}%`
+                                : 'ONLINE'}
+                        </ThemedText>
                         <StatusOrb />
                     </View>
                 </View>

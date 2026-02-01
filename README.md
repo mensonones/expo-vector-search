@@ -22,6 +22,7 @@ Unlike traditional databases that search for exact matches (e.g., "Product ID = 
 - **Distance**: The "similarity" between two items is calculated using the **Cosine Distance** between their vectors.
 - **Native Binary Loading**: Since `v0.2.0`, vectors can be loaded directly from `.bin` files into C++ memory, eliminating the JavaScript bridge bottleneck for large datasets.
 - **Dynamic CRUD & Hooks**: Since `v0.3.0`, the engine supports live updates (`remove`/`update`) and provides a simplified `useVectorSearch` hook for React.
+- **True Background Indexing**: Since `v0.5.0`, heavy ingestion tasks (`addBatch`) run in dedicated background threads, ensuring 60fps UI performance.
 - **HNSW Algorithm**: Instead of checking every single item (slow), we use a mathematical graph that lets us jump through the data to find the nearest neighbors in sub-millisecond time.
 
 ## Project Structure
@@ -141,10 +142,9 @@ The application includes a built-in benchmark tool that compares the native C++ 
 - [x] **Metadata Filtering**: Enable search with predicates (e.g., filtering by category or availability).
 - [x] **Simplified React Hooks**: Abstractions like `useVectorSearch` for automatic resource management.
 - [x] **Architecture-Specific SIMD**: Enabled NEON/AVX optimizations via SimSIMD for Android and iOS.
-- [ ] **On-Device Embeddings**: Local text/image to vector conversion (using MediaPipe or ONNX).
-- [ ] **Hybrid Search**: Combine vector similarity with traditional keyword-based search.
+- [x] **Background Indexing**: Offload heavy ingestion to native threads to prevent UI stutters.
 - [x] **USearch Engine Upgrade**: Migrate from `v2.9.0` to `v2.23.0+` for better precision.
-- [ ] **Background Indexing**: Offload heavy ingestion to native threads to prevent UI stutters.
+- [ ] **Hybrid Search**: Combine vector similarity with traditional keyword-based search.
 - [ ] **SQLite Synchronization**: Built-in utilities to sync vector indices with `expo-sqlite`.
 
 ## License

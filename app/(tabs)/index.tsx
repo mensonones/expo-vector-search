@@ -52,7 +52,7 @@ export default function HomeScreen() {
         {/* Header Section */}
         <View style={styles.titleSection}>
           <View style={styles.badge}>
-            <ThemedText style={styles.badgeText}>v0.2.0 • {simdBackend.toUpperCase()}</ThemedText>
+            <ThemedText style={styles.badgeText}>v0.5.0 • {simdBackend.toUpperCase()}</ThemedText>
           </View>
           <ThemedText type="title" style={styles.headerTitle}>Distance Metrics</ThemedText>
           <ThemedText style={styles.headerSubtitle}>
@@ -63,7 +63,7 @@ export default function HomeScreen() {
         {/* Introduction */}
         <View style={styles.section}>
           <ThemedText style={styles.introText}>
-            The choice of distance metric fundamentally changes how "similarity" is defined.
+            The choice of distance metric fundamentally changes how &quot;similarity&quot; is defined.
             Select the metric that matches your data type and use case.
           </ThemedText>
         </View>

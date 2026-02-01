@@ -2,8 +2,8 @@ import productsChunks from '@/assets/chunks';
 import productsMetadata from '@/assets/products_metadata.json';
 import { loadState, saveState } from '@/utils/storage';
 import { Asset } from 'expo-asset';
-import { VectorIndex } from 'expo-vector-search';
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { VectorIndex } from '../modules/expo-vector-search/src/ExpoVectorSearchModule';
 
 // Define the shape of our source data (Products)
 export type Product = {
@@ -23,6 +23,7 @@ const VECTOR_DIMENSION = 768; // CLIP ViT-L/14
 export function useVectorCatalog() {
     const [isInitializing, setIsInitializing] = useState(true);
     const [loadedCount, setLoadedCount] = useState(0);
+    const [progress, setProgress] = useState(0);
     const allProductsRef = useRef<Product[]>([]);
 
     // We use a ref to hold the index so we can destroy/recreate it without full unmounts if needed,
@@ -37,6 +38,7 @@ export function useVectorCatalog() {
         setLoadedCount(0);
         setIsInitializing(true);
         allProductsRef.current = [];
+        setProgress(0);
         setIndexOptions(newOptions);
         // The effect below will trigger re-loading data because `vectorIndex` changes.
     };
@@ -66,8 +68,20 @@ export function useVectorCatalog() {
 
                     if (vectorAsset.localUri) {
                         try {
-                            const nativeCount = vectorIndex.loadVectorsFromFile(vectorAsset.localUri);
-                            console.log(`[Native] Loaded ${nativeCount} vectors from file.`);
+                            // Polling for progress
+                            const progressInterval = setInterval(() => {
+                                if (vectorIndex.isIndexing) {
+                                    setProgress(vectorIndex.indexingProgress.percentage * 100);
+                                } else {
+                                    clearInterval(progressInterval);
+                                    setProgress(100);
+                                }
+                            }, 50);
+
+                            const { count: nativeCount, duration } = await vectorIndex.loadVectorsFromFile(vectorAsset.localUri);
+                            clearInterval(progressInterval);
+                            setProgress(100);
+                            console.log(`[Native] Loaded ${nativeCount} vectors from file in ${duration.toFixed(2)}ms.`);
 
                             // Reconstruct UI objects (without vectors attached to save JS memory)
                             // Note: findSimilar currently needs vector, but we are accepting this limitation 
@@ -133,6 +147,7 @@ export function useVectorCatalog() {
         allProductsRef,
         vectorIndex,
         resetIndex,
-        indexOptions
+        indexOptions,
+        progress
     };
 }

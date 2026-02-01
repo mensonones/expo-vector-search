@@ -110,10 +110,11 @@ Inserts a vector into the index.
 - `key`: A unique numeric identifier.
 - `vector`: A `Float32Array` containing the embeddings.
 
-#### `addBatch(keys: Int32Array, vectors: Float32Array): void`
-High-performance batch insertion. Significantly reduces JSI overhead by processing multiple vectors in a single native call.
+#### `async addBatch(keys: Int32Array, vectors: Float32Array): Promise<VectorAddBatchResult>`
+High-performance **asynchronous** batch insertion. Runs in a background thread to prevent UI freezing.
 - `keys`: An `Int32Array` of unique identifiers.
 - `vectors`: A single `Float32Array` containing all vectors concatenated (must match `keys.length * dimensions`).
+- **Returns**: A promise resolving to `{ duration: number, count: number }`.
 
 #### `search(vector: Float32Array, count: number, options?: SearchOptions): SearchResult[]`
 Performs an ANN search.
@@ -140,10 +141,10 @@ Deserializes an index from a file path.
 #### `delete(): void`
 Manually releases native memory resources. The index instance becomes unusable after this call.
 
-#### `loadVectorsFromFile(path: string): number`
-Loads raw vectors directly from a binary file into the index.
+#### `async loadVectorsFromFile(path: string): Promise<VectorLoadResult>`
+**Asynchronously** loads raw vectors directly from a binary file into the index.
 - `path`: Absolute path to the binary file containing packed floats.
-- **Returns**: The number of vectors successfully loaded.
+- **Returns**: A promise resolving to `{ duration: number, count: number }`.
 - **Note**: This is significantly faster than parsing JSON/Base64 in JavaScript and adding vectors loop by loop.
 
 #### `getItemVector(key: number): Float32Array | undefined`
@@ -164,6 +165,12 @@ Returns the estimated memory usage of the native index in bytes.
 #### `isa: string` (readonly)
 Returns the active SIMD instruction set name (e.g., `'NEON'`, `'AVX2'`, `'SVE'`, or `'Serial'`). Useful for verifying hardware acceleration at runtime.
 
+#### `isIndexing: boolean` (readonly)
+Returns `true` if a background indexing operation (`addBatch` or `loadVectorsFromFile`) is currently in progress.
+
+#### `indexingProgress: { current: number, total: number, percentage: number }` (readonly)
+Returns real-time progress of the current background indexing operation.
+
 ## Example Usage
 
 ```typescript
@@ -180,10 +187,10 @@ index.add(1, myVector);
 const query = new Float32Array(384).fill(0.48);
 const results = index.search(query, 5);
 
-// High-Performance Batch Insertion
+// High-Performance Async Batch Insertion
 const manyKeys = new Int32Array([10, 11, 12]);
 const manyVectors = new Float32Array(384 * 3).fill(0.1);
-index.addBatch(manyKeys, manyVectors);
+await index.addBatch(manyKeys, manyVectors);
 
 console.log(`Found ${results.length} neighbors`);
 results.forEach(res => {
@@ -217,12 +224,14 @@ Recent benchmarks show that Int8 indexing is actually ~4x faster than F32 precis
 ### Future Roadmap
 - [x] **Dynamic CRUD Support**: Implemented `remove(key)` and `update(key, vector)`.
 - [x] **Metadata Filtering**: Support for `allowedKeys` filtering during search.
-- [x] **Architecture-Specific SIMD**: Enabled NEON/AVX optimizations via SimSIMD for Android/iOS.
-- [ ] **Hybrid Search**: Integration with a keywords-based engine for hybrid results.
-- [ ] **Background Indexing**: True multithreaded ingestion to avoid JS bridge/thread locks.
+- [x] **Simplified React Hooks**: Abstractions like `useVectorSearch` for automatic resource management.
+- [x] **Architecture-Specific SIMD**: Enabled NEON/AVX optimizations via SimSIMD for Android and iOS.
+- [x] **Background Indexing**: True multithreaded ingestion to avoid JS thread locks.
 - [x] **Extended Distance Metrics**: Support for L2, IP, Hamming, and Jaccard.
 - [x] **USearch Upgrade**: Migration to `v2.23.0+` for enhanced performance.
-- [ ] **Incremental Persistence**: Local storage optimizations for large datasets.
+- [ ] **Hybrid Search**: Combine vector similarity with traditional keyword-based search.
+- [ ] **SQLite Synchronization**: Built-in utilities to sync vector indices with `expo-sqlite`.
+
 
 ## License
 MIT

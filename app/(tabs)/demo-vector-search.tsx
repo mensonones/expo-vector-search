@@ -66,7 +66,7 @@ export default function VectorSearchScreen() {
         }
     }, []);
 
-    const { isInitializing, loadedCount, allProductsRef, vectorIndex } = useVectorCatalog();
+    const { isInitializing, loadedCount, allProductsRef, vectorIndex, progress } = useVectorCatalog();
     const searchTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
     useEffect(() => {
@@ -169,10 +169,16 @@ export default function VectorSearchScreen() {
                     Find patterns • {simdBackend.toUpperCase()}
                 </ThemedText>
 
-                <View style={styles.statsBadge}>
-                    <IconSymbol name="bolt.fill" size={12} color="#007AFF" />
-                    <ThemedText style={styles.statsText}>
-                        {loadedCount.toLocaleString()} ITEMS INDEXED
+                <View style={[styles.statsBadge, (isInitializing || vectorIndex?.isIndexing) && { backgroundColor: '#FF950015' }]}>
+                    <IconSymbol
+                        name={(isInitializing || vectorIndex?.isIndexing) ? "clock.fill" : "bolt.fill"}
+                        size={12}
+                        color={(isInitializing || vectorIndex?.isIndexing) ? "#FF9500" : "#007AFF"}
+                    />
+                    <ThemedText style={[styles.statsText, (isInitializing || vectorIndex?.isIndexing) && { color: '#FF9500' }]}>
+                        {(isInitializing || vectorIndex?.isIndexing)
+                            ? `INDEXING ${progress.toFixed(0)}%`
+                            : `${loadedCount.toLocaleString()} ITEMS INDEXED`}
                     </ThemedText>
                 </View>
             </View>
@@ -197,10 +203,11 @@ export default function VectorSearchScreen() {
                 </GlassCard>
             </View>
 
-            {isInitializing && loadedCount < 500 ? (
+            {isInitializing && loadedCount < 9000 ? (
                 <View style={styles.center}>
                     <ActivityIndicator size="small" color={themeColors.tint} />
-                    <ThemedText style={{ marginTop: 16, opacity: 0.5 }}>Preparing engine...</ThemedText>
+                    <ThemedText style={{ marginTop: 16, fontWeight: '700', fontSize: 18 }}>{progress.toFixed(0)}%</ThemedText>
+                    <ThemedText style={{ marginTop: 8, opacity: 0.5 }}>Loading neural database...</ThemedText>
                 </View>
             ) : (
                 <FlatList

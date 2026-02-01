@@ -16,13 +16,35 @@ export interface SearchOptions {
   allowedKeys?: number[] | Int32Array | Uint32Array;
 }
 
+export type AddResult = {
+  duration: number; // in milliseconds
+};
+
+export type VectorAddBatchResult = {
+  duration: number; // in milliseconds
+  count: number;
+};
+
+export type VectorLoadResult = {
+  duration: number; // in milliseconds
+  count: number;
+};
+
+export type IndexingProgress = {
+  current: number;
+  total: number;
+  percentage: number;
+};
+
 // C++ HostObject Interface (Index Instance)
 interface VectorIndexHostObject {
   dimensions: number;
   count: number;
   memoryUsage: number;
   isa: string;
-  add(key: number, vector: Vector): void;
+  isIndexing: boolean;
+  indexingProgress: IndexingProgress;
+  add(key: number, vector: Vector): AddResult;
   remove(key: number): void;
   update(key: number, vector: Vector): void;
   search(
@@ -34,8 +56,9 @@ interface VectorIndexHostObject {
   load(path: string): void;
   delete(): void;
   addBatch(keys: Int32Array, vectors: Float32Array): void;
-  loadVectorsFromFile(path: string): number;
+  loadVectorsFromFile(path: string): void;
   getItemVector(key: number): Float32Array | undefined;
+  getLastResult(): VectorLoadResult;
 }
 
 // Global Module Interface (Factory)
@@ -97,24 +120,51 @@ export class VectorIndex {
   }
 
   /**
+   * Whether the index is currently processing an asynchronous operation (like addBatch).
+   */
+  get isIndexing(): boolean {
+    return this._index.isIndexing;
+  }
+
+  /**
+   * The real-time progress of an ongoing indexing operation.
+   */
+  get indexingProgress(): IndexingProgress {
+    return this._index.indexingProgress;
+  }
+
+  /**
    * Adds a vector to the index.
    * @param key A unique numeric identifier for the vector.
    * @param vector A Float32Array containing the vector data.
    * @throws Error if the vector dimension doesn't match or memory allocation fails.
    */
-  add(key: number, vector: Vector): void {
-    this._index.add(key, vector);
+  add(key: number, vector: Vector): AddResult {
+    return this._index.add(key, vector);
   }
 
   /**
    * Adds multiple vectors in a single high-performance batch operation.
    * This is significantly faster than calling `.add()` in a loop.
    * @param keys An Int32Array of unique numeric identifiers.
-   * @param vectors A single Float32Array containing all vectors concatenated.
    * @throws Error if buffer sizes or alignment do not match.
    */
-  addBatch(keys: Int32Array, vectors: Float32Array): void {
+  async addBatch(
+    keys: Int32Array,
+    vectors: Float32Array
+  ): Promise<VectorAddBatchResult> {
     this._index.addBatch(keys, vectors);
+    return this._waitForOperation();
+  }
+
+  /**
+   * Internal helper to poll for operation completion.
+   */
+  private async _waitForOperation(): Promise<VectorLoadResult> {
+    while (this._index.isIndexing) {
+      await new Promise((resolve) => setTimeout(resolve, 50));
+    }
+    return this._index.getLastResult();
   }
 
   /**
@@ -173,10 +223,11 @@ export class VectorIndex {
    * Loads raw vectors directly from a binary file.
    * This avoids JS parsing overhead and is much faster for initialization.
    * @param path The absolute path to the binary file containing packed floats.
-   * @returns The number of vectors loaded.
+   * @returns An object containing the number of vectors loaded and the duration.
    */
-  loadVectorsFromFile(path: string): number {
-    return this._index.loadVectorsFromFile(path);
+  async loadVectorsFromFile(path: string): Promise<VectorLoadResult> {
+    this._index.loadVectorsFromFile(path);
+    return this._waitForOperation();
   }
 
   /**

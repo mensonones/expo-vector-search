@@ -1,6 +1,8 @@
 #pragma once
 
 #ifdef __cplusplus
+#include <atomic>
+#include <chrono>
 #include <cstdio>
 #include <cstdlib>
 #include <fstream>
@@ -135,7 +137,15 @@ inline float jaccard_f32(const float *a, const float *b, std::size_t n,
   return 1.0f - (intersection / union_count);
 }
 
-class VectorIndexHostObject : public jsi::HostObject {
+struct OperationResult {
+  double duration = 0;
+  size_t count = 0;
+  std::string error = "";
+};
+
+class VectorIndexHostObject
+    : public jsi::HostObject,
+      public std::enable_shared_from_this<VectorIndexHostObject> {
 public:
   using Index = index_dense_t;
 
@@ -146,20 +156,21 @@ public:
     _threads = std::thread::hardware_concurrency();
     if (_threads == 0)
       _threads = 1;
+    _quantized = quantized;
 
     scalar_kind_t scalar_kind =
         quantized ? scalar_kind_t::i8_k : scalar_kind_t::f32_k;
 
     // Special case: Jaccard with f32 (not bitsets)
     if (metric_kind == metric_kind_t::jaccard_k && !quantized) {
-      metric_punned_t metric(dimensions,
-                             reinterpret_cast<std::uintptr_t>(&jaccard_f32),
-                             metric_punned_signature_t::array_array_size_k,
-                             metric_kind_t::jaccard_k, scalar_kind_t::f32_k);
-      _index = std::make_unique<Index>(Index::make(metric));
+      metric_punned_t metric_j(dimensions,
+                               reinterpret_cast<std::uintptr_t>(&jaccard_f32),
+                               metric_punned_signature_t::array_array_size_k,
+                               metric_kind_t::jaccard_k, scalar_kind_t::f32_k);
+      _index = std::make_shared<Index>(Index::make(metric_j));
     } else {
       metric_punned_t metric(dimensions, metric_kind, scalar_kind);
-      _index = std::make_unique<Index>(Index::make(metric));
+      _index = std::make_shared<Index>(Index::make(metric));
     }
 
     LOGD("Initializing Index HostObject: dims=%d, quantized=%d, metric=%d",
@@ -185,12 +196,57 @@ public:
       return jsi::Value((double)_index->dimensions());
     if (methodName == "count")
       return jsi::Value(_index ? (double)_index->size() : 0);
-    if (methodName == "memoryUsage")
-      return jsi::Value(_index ? (double)_index->memory_usage() : 0);
+    if (methodName == "memoryUsage") {
+      if (!_index)
+        return jsi::Value(0);
+      // We calculate memory usage manually to avoid a race condition in
+      // USearch's stats() when called during background indexing. This is also
+      // much faster and safer.
+      size_t count = _index->size();
+      size_t dims = _index->dimensions();
+      // Estimation:
+      // 1. Vector data (the largest part)
+      size_t vectorBytes = count * dims * (_quantized ? 1 : 4);
+      // 2. Graph overhead (nodes + neighbors). USearch node is ~64 bytes +
+      // connectivity * 4. We assume an average connectivity of 32 for the
+      // estimation.
+      size_t graphOverhead = count * (64 + 32 * 4);
+      // 3. Buffer base (metadata, threads, etc)
+      size_t baseMemory = 1024 * 1024; // 1MB base
+      return jsi::Value((double)(vectorBytes + graphOverhead + baseMemory));
+    }
     if (methodName == "isa") {
       const char *isa = _index ? _index->metric().isa_name() : "unknown";
-      LOGD("isa property accessed: %s", isa);
       return jsi::String::createFromUtf8(runtime, isa);
+    }
+    if (methodName == "isIndexing") {
+      return jsi::Value(_isIndexing.load());
+    }
+    if (methodName == "indexingProgress") {
+      jsi::Object res(runtime);
+      size_t current = _currentIndexingCount.load();
+      size_t total = _totalIndexingCount.load();
+      double percentage = (total > 0) ? (double)current / total : 0;
+      res.setProperty(runtime, "current", (double)current);
+      res.setProperty(runtime, "total", (double)total);
+      res.setProperty(runtime, "percentage", percentage);
+      return res;
+    }
+    if (methodName == "getLastResult") {
+      return jsi::Function::createFromHostFunction(
+          runtime, name, 0,
+          [this](jsi::Runtime &runtime, const jsi::Value &thisValue,
+                 const jsi::Value *arguments, size_t count) -> jsi::Value {
+            if (!_lastResult.error.empty()) {
+              std::string err = _lastResult.error;
+              _lastResult.error = ""; // Clear after reporting
+              throw jsi::JSError(runtime, err);
+            }
+            jsi::Object res(runtime);
+            res.setProperty(runtime, "duration", _lastResult.duration);
+            res.setProperty(runtime, "count", (double)_lastResult.count);
+            return res;
+          });
     }
 
     if (methodName == "delete") {
@@ -234,17 +290,22 @@ public:
               LOGD("Resizing index to: %zu", newCapacity);
               _index->reserve(index_limits_t(newCapacity, _threads));
             }
-            LOGD("Attempting to add: key=%llu, ptr=%p, dim=%zu",
-                 (unsigned long long)key, vecData, _index->dimensions());
+            auto start = std::chrono::high_resolution_clock::now();
             auto result = _index->add(key, vecData);
-            LOGD("Add completed: key=%llu", (unsigned long long)key);
+            auto end = std::chrono::high_resolution_clock::now();
+
             if (!result) {
               LOGE("Failed to add vector: %s", result.error.what());
               throw jsi::JSError(runtime, "Error adding: " +
                                               std::string(result.error.what()));
             }
 
-            return jsi::Value::undefined();
+            double durationMs =
+                std::chrono::duration<double, std::milli>(end - start).count();
+
+            jsi::Object res(runtime);
+            res.setProperty(runtime, "duration", durationMs);
+            return res;
           });
     }
 
@@ -253,12 +314,13 @@ public:
           runtime, name, 2,
           [this](jsi::Runtime &runtime, const jsi::Value &thisValue,
                  const jsi::Value *arguments, size_t count) -> jsi::Value {
-            LOGD("addBatch called");
             if (count < 2)
               throw jsi::JSError(runtime,
                                  "addBatch expects 2 arguments: keys, vectors");
             if (!_index)
               throw jsi::JSError(runtime, "VectorIndex has been deleted.");
+            if (_isIndexing)
+              throw jsi::JSError(runtime, "Index is already busy.");
 
             jsi::Object keysArray = arguments[0].asObject(runtime);
             auto keysBuffer = keysArray.getProperty(runtime, "buffer")
@@ -283,37 +345,54 @@ public:
             size_t dims = _index->dimensions();
             size_t batchCount = vecTotalElements / dims;
 
-            LOGD("addBatch processing: keysCount=%zu, batchCount=%zu, "
-                 "dims=%zu",
-                 keysCount, batchCount, dims);
-
             if (batchCount != keysCount)
               throw jsi::JSError(runtime, "Batch mismatch: keys and vectors "
                                           "must have compatible sizes.");
 
             if (_index->size() + batchCount > _index->capacity()) {
-              size_t newCapacity = _index->capacity() + batchCount;
-              // Double it if small to avoid frequent realloc
-              if (newCapacity < _index->capacity() * 2)
-                newCapacity = _index->capacity() * 2;
-              if (newCapacity < _index->size() + batchCount)
-                newCapacity = _index->size() + batchCount + 100;
-
-              LOGD("Resizing index for batch to: %zu", newCapacity);
+              size_t newCapacity = _index->size() + batchCount + 100;
               _index->reserve(index_limits_t(newCapacity, _threads));
             }
 
-            for (size_t i = 0; i < batchCount; ++i) {
-              auto result =
-                  _index->add((default_key_t)keysData[i], vecData + (i * dims));
-              if (!result) {
-                LOGE("Error adding in batch at index %zu: %s", i,
-                     result.error.what());
-                throw jsi::JSError(runtime, "Error adding in batch at index " +
-                                                std::to_string(i));
+            // Copy data safely for background thread
+            std::vector<int32_t> keys(keysData, keysData + batchCount);
+            std::vector<float> vectors(vecData, vecData + (batchCount * dims));
+
+            _isIndexing = true;
+            _currentIndexingCount = 0;
+            _totalIndexingCount = batchCount;
+
+            // Capture self to keep HostObject alive during background thread
+            std::thread([self = shared_from_this(), keys = std::move(keys),
+                         vectors = std::move(vectors), batchCount,
+                         dims]() mutable {
+              auto start = std::chrono::high_resolution_clock::now();
+              try {
+                for (size_t i = 0; i < batchCount; ++i) {
+                  if (!self->_index)
+                    break; // Safety check
+                  auto result = self->_index->add((default_key_t)keys[i],
+                                                  vectors.data() + (i * dims));
+                  if (!result) {
+                    self->_lastResult.error =
+                        "Error adding at index " + std::to_string(i);
+                    self->_isIndexing = false;
+                    return;
+                  }
+                  self->_currentIndexingCount++;
+                }
+                auto end = std::chrono::high_resolution_clock::now();
+                self->_lastResult.duration =
+                    std::chrono::duration<double, std::milli>(end - start)
+                        .count();
+                self->_lastResult.count = batchCount;
+                self->_lastResult.error = "";
+              } catch (const std::exception &e) {
+                self->_lastResult.error = e.what();
               }
-            }
-            LOGD("addBatch completed successfully");
+              self->_isIndexing = false;
+            }).detach();
+
             return jsi::Value::undefined();
           });
     }
@@ -517,6 +596,9 @@ public:
                  const jsi::Value *arguments, size_t count) -> jsi::Value {
             if (count < 1 || !arguments[0].isString())
               throw jsi::JSError(runtime, "loadVectorsFromFile expects path");
+            if (_isIndexing)
+              throw jsi::JSError(runtime, "Index is already busy.");
+
             std::string path = normalizePath(
                 runtime, arguments[0].asString(runtime).utf8(runtime));
 
@@ -525,39 +607,52 @@ public:
               throw jsi::JSError(runtime, "Could not open file: " + path);
 
             std::streamsize size = file.tellg();
-            file.seekg(0, std::ios::beg);
-
             if (size <= 0)
               return jsi::Value::undefined();
 
             size_t dims = _index->dimensions();
-            if (size % (dims * sizeof(float)) != 0) {
-              throw jsi::JSError(runtime,
-                                 "File size is not multiple of dimension");
-            }
-
             size_t numVectors = size / (dims * sizeof(float));
-            std::vector<char> buffer(size);
-            if (!file.read(buffer.data(), size))
-              throw jsi::JSError(runtime, "Failed to read file");
 
-            const float *vectorData =
-                reinterpret_cast<const float *>(buffer.data());
+            _isIndexing = true;
+            _currentIndexingCount = 0;
+            _totalIndexingCount = numVectors;
 
-            // Reserve capacity
-            if (_index->size() + numVectors > _index->capacity()) {
-              size_t newCap = _index->size() + numVectors + 100;
-              LOGD("Resizing index for large binary load: %zu", newCap);
-              _index->reserve(newCap);
-            }
+            // Capture self to keep HostObject alive during background thread
+            std::thread([self = shared_from_this(), path, numVectors, dims]() {
+              auto start = std::chrono::high_resolution_clock::now();
+              try {
+                std::ifstream file(path, std::ios::binary);
+                std::vector<float> vectorData(numVectors * dims);
+                file.read(reinterpret_cast<char *>(vectorData.data()),
+                          numVectors * dims * sizeof(float));
 
-            // Batch insert assuming keys 0..N
-            for (size_t i = 0; i < numVectors; ++i) {
-              _index->add((default_key_t)i, vectorData + (i * dims));
-            }
+                if (!self->_index)
+                  return;
+                if (self->_index->size() + numVectors >
+                    self->_index->capacity()) {
+                  self->_index->reserve(self->_index->size() + numVectors +
+                                        100);
+                }
 
-            LOGD("Appended %zu vectors from file", numVectors);
-            return jsi::Value((double)numVectors);
+                for (size_t i = 0; i < numVectors; ++i) {
+                  self->_index->add((default_key_t)i,
+                                    vectorData.data() + (i * dims));
+                  self->_currentIndexingCount++;
+                }
+
+                auto end = std::chrono::high_resolution_clock::now();
+                self->_lastResult.duration =
+                    std::chrono::duration<double, std::milli>(end - start)
+                        .count();
+                self->_lastResult.count = numVectors;
+                self->_lastResult.error = "";
+              } catch (const std::exception &e) {
+                self->_lastResult.error = e.what();
+              }
+              self->_isIndexing = false;
+            }).detach();
+
+            return jsi::Value::undefined();
           });
     }
 
@@ -581,7 +676,12 @@ public:
   }
 
 private:
-  std::unique_ptr<Index> _index;
+  std::shared_ptr<Index> _index;
+  std::atomic<bool> _isIndexing{false};
+  std::atomic<size_t> _currentIndexingCount{0};
+  std::atomic<size_t> _totalIndexingCount{0};
+  bool _quantized;
+  OperationResult _lastResult;
 };
 
 inline void install(jsi::Runtime &rt) {

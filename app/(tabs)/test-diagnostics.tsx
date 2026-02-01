@@ -46,6 +46,12 @@ export default function PerformanceLabScreen() {
     const MEM_DIMS = 384;
 
     const runPerformanceRace = async () => {
+        const waitForIndexing = async (index: VectorIndex) => {
+            while (index.isIndexing) {
+                await new Promise(r => setTimeout(r, 50));
+            }
+        };
+
         setStatus('running');
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
 
@@ -108,6 +114,7 @@ export default function PerformanceLabScreen() {
 
             const startBatch = performance.now();
             batchIndex.addBatch(keys, contiguousVectors);
+            await waitForIndexing(batchIndex);
             const endBatch = performance.now();
             setBatchInsertTime(endBatch - startBatch);
             batchIndex.delete();
@@ -126,6 +133,7 @@ export default function PerformanceLabScreen() {
             const f32Idx = new VectorIndex(MEM_DIMS, { quantization: 'f32' });
             const startF32 = performance.now();
             f32Idx.addBatch(memKeys, memChunk);
+            await waitForIndexing(f32Idx);
             const endF32 = performance.now();
             setF32Memory(f32Idx.memoryUsage);
             setF32Time(endF32 - startF32);
@@ -134,6 +142,7 @@ export default function PerformanceLabScreen() {
             const i8Idx = new VectorIndex(MEM_DIMS, { quantization: 'i8' });
             const startI8 = performance.now();
             i8Idx.addBatch(memKeys, memChunk);
+            await waitForIndexing(i8Idx);
             const endI8 = performance.now();
             setI8Memory(i8Idx.memoryUsage);
             setI8Time(endI8 - startI8);
