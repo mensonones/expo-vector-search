@@ -1592,8 +1592,16 @@ public:
     case simsimd_cap_serial_k:
       return "serial";
     case simsimd_cap_neon_k:
+    case simsimd_cap_neon_f16_k:
+    case simsimd_cap_neon_bf16_k:
+    case simsimd_cap_neon_i8_k:
       return "neon";
     case simsimd_cap_sve_k:
+    case simsimd_cap_sve_f16_k:
+    case simsimd_cap_sve_bf16_k:
+    case simsimd_cap_sve_i8_k:
+    case simsimd_cap_sve2_k:
+    case simsimd_cap_sve2p1_k:
       return "sve";
     case simsimd_cap_haswell_k:
       return "avx2";
@@ -1601,10 +1609,14 @@ public:
       return "avx512";
     case simsimd_cap_ice_k:
       return "avx512+popcnt";
+    case simsimd_cap_genoa_k:
+      return "avx512+bf16";
     case simsimd_cap_sapphire_k:
       return "avx512+f16";
-    case simsimd_cap_sve2_k:
-      return "sve2";
+    case simsimd_cap_turin_k:
+      return "avx512+conflict";
+    case simsimd_cap_sierra_k:
+      return "avx2+vnni";
     default:
       return "unknown";
     }
