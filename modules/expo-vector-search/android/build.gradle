@@ -1,7 +1,7 @@
 apply plugin: 'com.android.library'
 
 group = 'expo.modules.vectorsearch'
-version = '0.2.0'
+version = '0.5.0'
 
 def expoModulesCorePlugin = new File(project(":expo-modules-core").projectDir.absolutePath, "ExpoModulesCorePlugin.gradle")
 apply from: expoModulesCorePlugin
@@ -36,7 +36,7 @@ android {
   
   defaultConfig {
     versionCode 2
-    versionName "0.2.0"
+    versionName "0.5.0"
 
 
     externalNativeBuild {
