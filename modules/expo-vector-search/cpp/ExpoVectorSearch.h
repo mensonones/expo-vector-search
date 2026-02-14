@@ -8,6 +8,7 @@
 #include <fstream>
 #include <jsi/jsi.h>
 #include <memory>
+#include <mutex>
 #include <string>
 #include <thread>
 #include <unordered_set>
@@ -192,11 +193,17 @@ public:
   jsi::Value get(jsi::Runtime &runtime, const jsi::PropNameID &name) override {
     std::string methodName = name.utf8(runtime);
 
-    if (methodName == "dimensions")
+    if (methodName == "dimensions") {
+      std::lock_guard<std::mutex> lock(_mutex);
       return jsi::Value((double)_index->dimensions());
+    }
     if (methodName == "count")
+    {
+      std::lock_guard<std::mutex> lock(_mutex);
       return jsi::Value(_index ? (double)_index->size() : 0);
+    }
     if (methodName == "memoryUsage") {
+      std::lock_guard<std::mutex> lock(_mutex);
       if (!_index)
         return jsi::Value(0);
       // We calculate memory usage manually to avoid a race condition in
@@ -216,6 +223,7 @@ public:
       return jsi::Value((double)(vectorBytes + graphOverhead + baseMemory));
     }
     if (methodName == "isa") {
+      std::lock_guard<std::mutex> lock(_mutex);
       const char *isa = _index ? _index->metric().isa_name() : "unknown";
       return jsi::String::createFromUtf8(runtime, isa);
     }
@@ -237,6 +245,7 @@ public:
           runtime, name, 0,
           [this](jsi::Runtime &runtime, const jsi::Value &thisValue,
                  const jsi::Value *arguments, size_t count) -> jsi::Value {
+            std::lock_guard<std::mutex> lock(_mutex);
             if (!_lastResult.error.empty()) {
               std::string err = _lastResult.error;
               _lastResult.error = ""; // Clear after reporting
@@ -254,6 +263,7 @@ public:
           runtime, name, 0,
           [this](jsi::Runtime &runtime, const jsi::Value &thisValue,
                  const jsi::Value *arguments, size_t count) -> jsi::Value {
+            std::lock_guard<std::mutex> lock(_mutex);
             _index.reset();
             return jsi::Value::undefined();
           });
@@ -267,15 +277,14 @@ public:
             if (count < 2)
               throw jsi::JSError(runtime,
                                  "add expects 2 arguments: key, vector");
-            if (!_index)
-              throw jsi::JSError(runtime, "VectorIndex has been deleted.");
 
             default_key_t key =
                 static_cast<default_key_t>(arguments[0].asNumber());
             auto [vecData, vecSize] = getRawVector(runtime, arguments[1]);
 
-            // LOGD("add called: key=%llu, vecSize=%zu, capacity=%zu",
-            //      (unsigned long long)key, vecSize, _index->capacity());
+            std::lock_guard<std::mutex> lock(_mutex);
+            if (!_index)
+              throw jsi::JSError(runtime, "VectorIndex has been deleted.");
 
             if (vecSize != _index->dimensions()) {
               LOGE("Dimension mismatch: expected %zu, got %zu",
@@ -349,9 +358,12 @@ public:
               throw jsi::JSError(runtime, "Batch mismatch: keys and vectors "
                                           "must have compatible sizes.");
 
-            if (_index->size() + batchCount > _index->capacity()) {
-              size_t newCapacity = _index->size() + batchCount + 100;
-              _index->reserve(index_limits_t(newCapacity, _threads));
+            {
+              std::lock_guard<std::mutex> lock(_mutex);
+              if (_index->size() + batchCount > _index->capacity()) {
+                size_t newCapacity = _index->size() + batchCount + 100;
+                _index->reserve(index_limits_t(newCapacity, _threads));
+              }
             }
 
             // Copy data safely for background thread
@@ -369,6 +381,7 @@ public:
               auto start = std::chrono::high_resolution_clock::now();
               try {
                 for (size_t i = 0; i < batchCount; ++i) {
+                  std::lock_guard<std::mutex> lock(self->_mutex);
                   if (!self->_index)
                     break; // Safety check
                   auto result = self->_index->add((default_key_t)keys[i],
@@ -382,12 +395,16 @@ public:
                   self->_currentIndexingCount++;
                 }
                 auto end = std::chrono::high_resolution_clock::now();
-                self->_lastResult.duration =
-                    std::chrono::duration<double, std::milli>(end - start)
-                        .count();
-                self->_lastResult.count = batchCount;
-                self->_lastResult.error = "";
+                {
+                  std::lock_guard<std::mutex> lock(self->_mutex);
+                  self->_lastResult.duration =
+                      std::chrono::duration<double, std::milli>(end - start)
+                          .count();
+                  self->_lastResult.count = batchCount;
+                  self->_lastResult.error = "";
+                }
               } catch (const std::exception &e) {
+                std::lock_guard<std::mutex> lock(self->_mutex);
                 self->_lastResult.error = e.what();
               }
               self->_isIndexing = false;
@@ -404,11 +421,13 @@ public:
                  const jsi::Value *arguments, size_t count) -> jsi::Value {
             if (count < 1)
               throw jsi::JSError(runtime, "remove expects 1 argument: key");
-            if (!_index)
-              throw jsi::JSError(runtime, "VectorIndex has been deleted.");
 
             default_key_t key =
                 static_cast<default_key_t>(arguments[0].asNumber());
+
+            std::lock_guard<std::mutex> lock(_mutex);
+            if (!_index)
+              throw jsi::JSError(runtime, "VectorIndex has been deleted.");
 
             auto result = _index->remove(key);
             if (!result) {
@@ -429,12 +448,14 @@ public:
             if (count < 2)
               throw jsi::JSError(runtime,
                                  "update expects 2 arguments: key, vector");
-            if (!_index)
-              throw jsi::JSError(runtime, "VectorIndex has been deleted.");
 
             default_key_t key =
                 static_cast<default_key_t>(arguments[0].asNumber());
             auto [vecData, vecSize] = getRawVector(runtime, arguments[1]);
+
+            std::lock_guard<std::mutex> lock(_mutex);
+            if (!_index)
+              throw jsi::JSError(runtime, "VectorIndex has been deleted.");
 
             if (vecSize != _index->dimensions()) {
               throw jsi::JSError(runtime, "Incorrect dimension for update.");
@@ -464,8 +485,6 @@ public:
             if (count < 2)
               throw jsi::JSError(runtime,
                                  "search expects 2 arguments: vector, count");
-            if (!_index)
-              throw jsi::JSError(runtime, "VectorIndex has been deleted.");
 
             LOGD("search: starting...");
             auto [queryData, querySize] = getRawVector(runtime, arguments[0]);
@@ -494,6 +513,10 @@ public:
                 }
               }
             }
+
+            std::lock_guard<std::mutex> lock(_mutex);
+            if (!_index)
+              throw jsi::JSError(runtime, "VectorIndex has been deleted.");
 
             if (querySize != _index->dimensions()) {
               LOGE("Search dimension mismatch: expected %zu, got %zu",
@@ -536,6 +559,11 @@ public:
 
             default_key_t key =
                 static_cast<default_key_t>(arguments[0].asNumber());
+
+            std::lock_guard<std::mutex> lock(_mutex);
+            if (!_index)
+              throw jsi::JSError(runtime, "VectorIndex has been deleted.");
+
             size_t dims = _index->dimensions();
 
             jsi::ArrayBuffer buffer =
@@ -545,24 +573,15 @@ public:
                     .getObject(runtime)
                     .getArrayBuffer(runtime);
 
-            // We need raw access to write to it
-            // JSI ArrayBuffer doesn't give direct mutable pointer easily
-            // without a TypedArray view? Actually getArrayBuffer ->
-            // data(runtime) gives pointer.
-
             uint8_t *data = buffer.data(runtime);
             float *vecData = reinterpret_cast<float *>(data);
 
-            // USearch get() signature: bool get(key_t key, scalar_t* vector)
-            // const
             bool found = _index->get(key, vecData);
 
             if (!found) {
               return jsi::Value::undefined();
             }
 
-            // Return Float32Array view
-            // Float32Array constructor: new Float32Array(buffer)
             jsi::Object float32ArrayCtor =
                 runtime.global().getPropertyAsObject(runtime, "Float32Array");
             jsi::Object float32Array = float32ArrayCtor.asFunction(runtime)
@@ -582,6 +601,9 @@ public:
               throw jsi::JSError(runtime, "save expects path");
             std::string path = normalizePath(
                 runtime, arguments[0].asString(runtime).utf8(runtime));
+            std::lock_guard<std::mutex> lock(_mutex);
+            if (!_index)
+              throw jsi::JSError(runtime, "VectorIndex has been deleted.");
             if (!_index->save(path.c_str()))
               throw jsi::JSError(
                   runtime, "Critical error saving index to disk: " + path);
@@ -626,27 +648,35 @@ public:
                 file.read(reinterpret_cast<char *>(vectorData.data()),
                           numVectors * dims * sizeof(float));
 
-                if (!self->_index)
-                  return;
-                if (self->_index->size() + numVectors >
-                    self->_index->capacity()) {
-                  self->_index->reserve(self->_index->size() + numVectors +
-                                        100);
+                {
+                  std::lock_guard<std::mutex> lock(self->_mutex);
+                  if (!self->_index)
+                    return;
+                  if (self->_index->size() + numVectors >
+                      self->_index->capacity()) {
+                    self->_index->reserve(self->_index->size() + numVectors +
+                                          100);
+                  }
                 }
 
                 for (size_t i = 0; i < numVectors; ++i) {
+                  std::lock_guard<std::mutex> lock(self->_mutex);
                   self->_index->add((default_key_t)i,
                                     vectorData.data() + (i * dims));
                   self->_currentIndexingCount++;
                 }
 
                 auto end = std::chrono::high_resolution_clock::now();
-                self->_lastResult.duration =
-                    std::chrono::duration<double, std::milli>(end - start)
-                        .count();
-                self->_lastResult.count = numVectors;
-                self->_lastResult.error = "";
+                {
+                  std::lock_guard<std::mutex> lock(self->_mutex);
+                  self->_lastResult.duration =
+                      std::chrono::duration<double, std::milli>(end - start)
+                          .count();
+                  self->_lastResult.count = numVectors;
+                  self->_lastResult.error = "";
+                }
               } catch (const std::exception &e) {
+                std::lock_guard<std::mutex> lock(self->_mutex);
                 self->_lastResult.error = e.what();
               }
               self->_isIndexing = false;
@@ -665,6 +695,9 @@ public:
               throw jsi::JSError(runtime, "load expects path");
             std::string path = normalizePath(
                 runtime, arguments[0].asString(runtime).utf8(runtime));
+            std::lock_guard<std::mutex> lock(_mutex);
+            if (!_index)
+              throw jsi::JSError(runtime, "VectorIndex has been deleted.");
             if (!_index->load(path.c_str()))
               throw jsi::JSError(
                   runtime, "Critical error loading index from disk: " + path);
@@ -677,6 +710,7 @@ public:
 
 private:
   std::shared_ptr<Index> _index;
+  mutable std::mutex _mutex;
   std::atomic<bool> _isIndexing{false};
   std::atomic<size_t> _currentIndexingCount{0};
   std::atomic<size_t> _totalIndexingCount{0};
