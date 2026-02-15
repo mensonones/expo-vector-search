@@ -2,7 +2,7 @@
   "expo": {
     "name": "expo-vector-search-app",
     "slug": "expo-vector-search-app",
-    "version": "0.5.1",
+    "version": "0.5.2",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "expovectorsearchapp",

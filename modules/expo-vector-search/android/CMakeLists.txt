@@ -42,3 +42,11 @@ target_link_libraries(
   # Depending on the Expo/RN version, linking might be necessary:
   # ReactAndroid::react_nativemodule_core
 )
+
+# 6. 16KB Page Alignment for Modern Android
+# Ensures compatibility with Android 15+ and specialized devices.
+target_link_options(
+  expo-vector-search
+  PRIVATE
+  "-Wl,-z,max-page-size=16384"
+)
