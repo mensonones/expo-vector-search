@@ -1,6 +1,6 @@
 # Changelog
 
-## [0.5.2] - 
+## [0.5.2] - 2026-02-15
 
 ### Fixed
 - **Android (16KB Page)**: Enabled 16KB page size compatibility for modern Android environments (Android 15+) by updating native library alignment.
