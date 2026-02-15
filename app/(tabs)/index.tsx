@@ -52,7 +52,7 @@ export default function HomeScreen() {
         {/* Header Section */}
         <View style={styles.titleSection}>
           <View style={styles.badge}>
-            <ThemedText style={styles.badgeText}>v0.5.0 • {simdBackend.toUpperCase()}</ThemedText>
+            <ThemedText style={styles.badgeText}>v0.5.1 • {simdBackend.toUpperCase()}</ThemedText>
           </View>
           <ThemedText type="title" style={styles.headerTitle}>Distance Metrics</ThemedText>
           <ThemedText style={styles.headerSubtitle}>
