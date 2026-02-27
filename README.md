@@ -122,7 +122,6 @@ The application includes a built-in benchmark tool that compares the native C++ 
 | **iOS** (iPhone 12) | Batch `.addBatch` | 102.59 ms | **73.14 ms** | **NEON + Proxy** |
 
 ### Memory Optimization (10,000 items, 384 dims)
-### Memory & Indexing (10,000 items, 384d)
 | Platform | Feature | Base C++ (v0.2.0) | SIMD/NEON (v0.4.0) | Improvement |
 | :--- | :--- | :--- | :--- | :--- |
 | **Android** (S23 FE) | F32 Indexing | ~9.284 ms | 10.591 ms | Proxy Overhead |
