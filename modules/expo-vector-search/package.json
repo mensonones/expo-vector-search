@@ -45,5 +45,23 @@
     },
     "devDependencies": {
         "expo-module-scripts": "^5.0.8"
+    },
+    "resolutions": {
+        "**/@typescript-eslint/typescript-estree/minimatch": "9.0.7",
+        "**/glob/minimatch": "3.1.4",
+        "**/glob@^13.0.0/minimatch": "10.2.3",
+        "**/eslint-plugin-import/minimatch": "3.1.4",
+        "**/eslint-plugin-node/minimatch": "3.1.4",
+        "**/eslint-plugin-react/minimatch": "3.1.4",
+        "**/test-exclude/minimatch": "3.1.4",
+        "**/anymatch/picomatch": "2.3.2",
+        "**/jest-util/picomatch": "2.3.2",
+        "**/micromatch/picomatch": "2.3.2",
+        "**/readdirp/picomatch": "2.3.2",
+        "**/tinyglobby/picomatch": "4.0.4",
+        "**/ts-declaration-location/picomatch": "4.0.4",
+        "**/uuid": "11.1.1",
+        "**/minimatch/brace-expansion": "1.1.13",
+        "**/jsdom/ws": "8.20.1"
     }
 }
