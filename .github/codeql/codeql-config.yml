@@ -1,0 +1,5 @@
+name: "Custom CodeQL Config"
+
+paths-ignore:
+  - 'modules/expo-vector-search/cpp/simsimd/**'
+  - 'modules/expo-vector-search/cpp/usearch/**'
